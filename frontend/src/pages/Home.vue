@@ -1,8 +1,8 @@
 <template>
-  <div class="min-h-[100dvh] bg-white">
-    <div class="min-h-[100dvh] px-0 py-0 lg:px-12 lg:py-12">
+  <div class="min-h-[100dvh] bg-white lg:flex lg:items-stretch">
+    <div class="min-h-[100dvh] w-full px-0 py-0 lg:px-12 lg:py-12">
       <div
-        class="w-full min-h-[100dvh] max-w-md rounded-none bg-white px-6 py-10 lg:min-h-0 lg:max-w-sm"
+        class="w-full min-h-[100dvh] bg-white px-6 py-10 sm:px-8 sm:py-12 lg:min-h-0 lg:w-[400px] lg:px-6 lg:py-12"
       >
       <div class="flex flex-col items-center text-center">
         <div class="flex h-20 w-20 items-center justify-center rounded-2xl bg-blue-100">
