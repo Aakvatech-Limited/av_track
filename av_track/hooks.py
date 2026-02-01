@@ -199,6 +199,13 @@ app_license = "mit"
 # before_request = ["av_track.utils.before_request"]
 # after_request = ["av_track.utils.after_request"]
 
+# Website route rules
+# -------------------
+
+website_route_rules = [
+	{"from_route": "/track/<path:app_path>", "to_route": "track"},
+]
+
 # Job Events
 # ----------
 # before_job = ["av_track.utils.before_job"]
@@ -246,4 +253,3 @@ app_license = "mit"
 # ------------
 # List of apps whose translatable strings should be excluded from this app's translations.
 # ignore_translatable_strings_from = []
-

@@ -21,7 +21,7 @@ export default defineConfig({
       manifest: {
         name: 'AVTrack',
         short_name: 'AVTrack',
-        start_url: '/av_track',
+        start_url: '/track',
         display: 'standalone',
         background_color: '#ffffff',
         theme_color: '#ffffff',
