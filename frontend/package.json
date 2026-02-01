@@ -11,7 +11,15 @@
     "feather-icons": "^4.28.0",
     "frappe-ui": "^0.0.105",
     "vue": "^3.2.25",
-    "vue-router": "^4.0.12"
+    "vue-router": "^4.0.12",
+    "vite-plugin-pwa": "^0.20.5",
+    "workbox-core": "7.3.0",
+    "workbox-precaching": "7.3.0"
+  },
+  "resolutions": {
+    "workbox-build": "7.3.0",
+    "workbox-core": "7.3.0",
+    "workbox-precaching": "7.3.0"
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^2.0.0",
