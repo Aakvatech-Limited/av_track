@@ -82,18 +82,18 @@
           Don&apos;t have an account??
         </p>
         <div class="mt-3 space-y-2">
-          <button
-            type="button"
-            class="w-full rounded-full border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-800 shadow-sm transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700 hover:shadow-md"
+          <router-link
+            to="/customer-signup"
+            class="block w-full rounded-full border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-800 shadow-sm transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700 hover:shadow-md"
           >
             Create an account as Customer
-          </button>
-          <button
-            type="button"
-            class="w-full rounded-full border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-800 shadow-sm transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700 hover:shadow-md"
+          </router-link>
+          <router-link
+            to="/driver-login"
+            class="block w-full rounded-full border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-800 shadow-sm transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700 hover:shadow-md"
           >
             Login as Driver
-          </button>
+          </router-link>
         </div>
       </div>
       </div>
