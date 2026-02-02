@@ -1,9 +1,6 @@
 <template>
-  <div class="min-h-[100dvh] bg-white lg:flex lg:items-stretch">
-    <div class="min-h-[100dvh] w-full px-6 py-8 lg:px-12 lg:py-12">
-      <div
-        class="w-full min-h-[100dvh] bg-white px-6 py-10 sm:px-8 sm:py-12 lg:min-h-0 lg:w-[400px] lg:px-6 lg:py-12"
-      >
+  <BaseShell>
+      <div class="min-h-[100dvh] bg-white px-0 py-0">
       <div class="flex flex-col items-center text-center">
         <div class="flex h-20 w-20 items-center justify-center rounded-2xl bg-blue-100">
           <img
@@ -97,13 +94,17 @@
         </div>
       </div>
       </div>
-    </div>
-  </div>
+  </BaseShell>
 </template>
 
 <script>
+import BaseShell from '@/components/BaseShell.vue'
+
 export default {
   name: 'Home',
+  components: {
+    BaseShell,
+  },
   data() {
     return {
       showPassword: false,

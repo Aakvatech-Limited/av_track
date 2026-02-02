@@ -1,7 +1,6 @@
 <template>
-  <div class="min-h-[100dvh] bg-white">
-    <div class="min-h-[100dvh] w-full px-6 py-8 lg:px-12 lg:py-12">
-      <div class="w-full min-h-[100dvh] bg-white lg:min-h-0 lg:w-[400px]">
+  <BaseShell>
+      <div class="min-h-[100dvh] bg-white">
         <div class="flex items-center gap-3">
           <router-link
             to="/"
@@ -137,13 +136,17 @@
           </router-link>
         </p>
       </div>
-    </div>
-  </div>
+  </BaseShell>
 </template>
 
 <script>
+import BaseShell from '@/components/BaseShell.vue'
+
 export default {
   name: 'CustomerSignup',
+  components: {
+    BaseShell,
+  },
   data() {
     return {
       showPassword: false,
