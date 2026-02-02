@@ -21,10 +21,10 @@
           </svg>
         </div>
         <h1 class="mt-6 text-2xl font-semibold text-slate-900">
-          SwiftLogistics
+          AV Track
         </h1>
         <p class="mt-2 text-sm text-slate-500">
-          Log in to your driver account
+          Dispatch • Track • Deliver
         </p>
       </div>
 
@@ -88,10 +88,23 @@
       <div class="my-8 h-px w-full bg-slate-200" />
 
       <div class="text-center text-sm text-slate-500">
-        <p class="font-semibold text-slate-900">Don&apos;t have an account?</p>
-        <p class="mt-2">
-          Contact your system administrator to get started.
+        <p class="font-semibold text-slate-900">
+          Don&apos;t have an account??
         </p>
+        <div class="mt-3 space-y-2">
+          <button
+            type="button"
+            class="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700 hover:shadow-md"
+          >
+            Create an account as Customer
+          </button>
+          <button
+            type="button"
+            class="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700 hover:shadow-md"
+          >
+            Login as Driver
+          </button>
+        </div>
       </div>
       </div>
     </div>
