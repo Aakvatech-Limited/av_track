@@ -29,7 +29,7 @@
           </p>
         </div>
 
-        <form class="mt-6 space-y-5" @submit.prevent>
+        <form class="mt-6 space-y-5" @submit.prevent="goToDashboard">
           <label class="block text-sm font-semibold text-slate-900">
             Email
             <input
@@ -107,6 +107,11 @@ export default {
     return {
       showPassword: false,
     }
+  },
+  methods: {
+    goToDashboard() {
+      this.$router.push('/driver/dashboard')
+    },
   },
 }
 </script>

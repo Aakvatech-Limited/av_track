@@ -12,6 +12,11 @@ const routes = [
     component: () => import('@/pages/DriverLogin.vue'),
   },
   {
+    path: '/driver/dashboard',
+    name: 'DriverDashboard',
+    component: () => import('@/pages/drivee/DriverDashboard.vue'),
+  },
+  {
     path: '/customer-signup',
     name: 'CustomerSignup',
     component: () => import('@/pages/CustomerSignup.vue'),
