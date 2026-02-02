@@ -6,19 +6,11 @@
       >
       <div class="flex flex-col items-center text-center">
         <div class="flex h-20 w-20 items-center justify-center rounded-2xl bg-blue-100">
-          <svg
-            viewBox="0 0 24 24"
-            class="h-10 w-10 text-blue-600"
-            fill="currentColor"
-            aria-hidden="true"
-          >
-            <path
-              d="M3 7a2 2 0 0 1 2-2h9l5 5v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7Zm10-1v4h4"
-            />
-            <path
-              d="M7 17a2 2 0 1 0 4 0H7Zm6 0a2 2 0 1 0 4 0h-4Z"
-            />
-          </svg>
+          <img
+            src="@/assets/avtrack-logo.png"
+            alt="AVTrack"
+            class="h-12 w-12 object-contain"
+          />
         </div>
         <h1 class="mt-6 text-2xl font-semibold text-slate-900">
           AV Track
