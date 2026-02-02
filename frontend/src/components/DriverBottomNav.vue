@@ -1,5 +1,5 @@
 <template>
-  <div class="fixed bottom-0 left-0 right-0 mx-auto max-w-[390px] h-20 bg-slate-900/90 border-t border-slate-800 px-6 flex justify-between items-center pb-4">
+  <div class="fixed bottom-0 left-0 right-0 mx-auto max-w-[390px] h-20 bg-slate-900/90 border-t border-slate-800 px-6 flex justify-between items-center pb-4 lg:left-12 lg:right-auto lg:mx-0 lg:max-w-[420px] lg:w-[420px]">
     <div class="flex flex-col items-center gap-1 text-blue-500">
       <svg class="h-5 w-5" viewBox="0 0 24 24" fill="currentColor">
         <path d="M20 8h-3V4H3c-1.1 0-2 .9-2 2v11h2c0 1.66 1.34 3 3 3s3-1.34 3-3h6c0 1.66 1.34 3 3 3s3-1.34 3-3h2v-5l-3-4z"/>
