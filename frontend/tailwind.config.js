@@ -8,7 +8,21 @@ module.exports = {
     "./node_modules/frappe-ui/src/components/**/*.{vue,js,ts,jsx,tsx}",
   ],
   theme: {
-    extend: {},
+    extend: {
+      fontFamily: {
+        sans: [
+          'Manrope',
+          'ui-sans-serif',
+          'system-ui',
+          '-apple-system',
+          'Segoe UI',
+          'Roboto',
+          'Arial',
+          'Noto Sans',
+          'sans-serif',
+        ],
+      },
+    },
   },
   plugins: [],
 }
