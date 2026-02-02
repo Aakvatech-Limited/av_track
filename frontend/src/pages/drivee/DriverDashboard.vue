@@ -3,7 +3,7 @@
     <div class="min-h-[100dvh] w-full px-6 py-8 lg:px-12 lg:py-12">
       <div class="mx-0 w-full max-w-[390px] pb-24">
         <!-- Header -->
-        <div class="flex items-center justify-between mb-6">
+        <div class="sticky top-0 z-20 -mx-6 mb-6 flex items-center justify-between bg-white/95 px-6 py-4 backdrop-blur">
           <div class="flex items-center gap-3">
             <div class="w-12 h-12 rounded-full bg-slate-200 overflow-hidden border-2 border-blue-500/60">
               <img
