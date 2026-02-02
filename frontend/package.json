@@ -9,24 +9,27 @@
     "copy-html-entry": "cp ../av_track/public/frontend/index.html ../av_track/www/track.html"
   },
   "dependencies": {
-    "feather-icons": "^4.28.0",
-    "frappe-ui": "^0.0.105",
-    "vue": "^3.2.25",
-    "vue-router": "^4.0.12",
+    "@vitejs/plugin-vue": "^4.4.0",
+    "autoprefixer": "^10.4.19",
+    "feather-icons": "^4.29.1",
+    "frappe-ui": "0.1.105",
+    "postcss": "^8.4.5",
+    "tailwindcss": "^3.4.3",
+    "vite": "^5.4.10",
     "vite-plugin-pwa": "^0.20.5",
+    "vue": "^3.5.12",
+    "vue-router": "^4.3.2",
     "workbox-core": "7.3.0",
     "workbox-precaching": "7.3.0"
+  },
+  "devDependencies": {
+    "eslint": "^8.39.0",
+    "eslint-plugin-vue": "^9.11.0",
+    "prettier": "^2.8.8"
   },
   "resolutions": {
     "workbox-build": "7.3.0",
     "workbox-core": "7.3.0",
     "workbox-precaching": "7.3.0"
-  },
-  "devDependencies": {
-    "@vitejs/plugin-vue": "^5.0.0",
-    "autoprefixer": "^10.4.2",
-    "postcss": "^8.4.5",
-    "tailwindcss": "^3.0.15",
-    "vite": "^5.4.10"
   }
 }

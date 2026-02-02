@@ -1,6 +1,6 @@
 <template>
   <div class="min-h-[100dvh] bg-white lg:flex lg:items-stretch">
-    <div class="min-h-[100dvh] w-full px-0 py-0 lg:px-12 lg:py-12">
+    <div class="min-h-[100dvh] w-full px-6 py-8 lg:px-12 lg:py-12">
       <div
         class="w-full min-h-[100dvh] bg-white px-6 py-10 sm:px-8 sm:py-12 lg:min-h-0 lg:w-[400px] lg:px-6 lg:py-12"
       >
@@ -12,10 +12,8 @@
             class="h-12 w-12 object-contain"
           />
         </div>
-        <h1 class="mt-6 text-2xl font-semibold text-slate-900">
-          AV Track
-        </h1>
-        <p class="mt-2 text-sm text-slate-500">
+        <h1 class="mt-6 text-2xl font-semibold text-slate-900">AV Track</h1>
+        <p class="mt-2 text-sm text-slate-600">
           Dispatch • Track • Deliver
         </p>
       </div>
@@ -26,7 +24,7 @@
           <input
             type="text"
             placeholder="Enter your credentials"
-            class="mt-2 w-full rounded-xl border border-slate-200 px-4 py-3 text-sm text-slate-700 placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-4 focus:ring-blue-100"
+            class="mt-2 w-full rounded-full border border-slate-300 bg-white px-5 py-3 text-sm text-slate-700 placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
           />
         </label>
 
@@ -36,7 +34,7 @@
             <input
               :type="showPassword ? 'text' : 'password'"
               placeholder="••••••••"
-              class="w-full rounded-xl border border-slate-200 px-4 py-3 pr-12 text-sm text-slate-700 placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-4 focus:ring-blue-100"
+              class="w-full rounded-full border border-slate-300 bg-white px-5 py-3 pr-12 text-sm text-slate-700 placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
             />
             <button
               type="button"
@@ -71,7 +69,7 @@
 
         <button
           type="submit"
-          class="mt-2 w-full rounded-2xl bg-blue-600 py-3.5 text-center text-base font-semibold text-white shadow-[0_12px_24px_rgba(37,99,235,0.35)] transition hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-200"
+          class="mt-2 w-full rounded-full bg-blue-600 py-4 text-center text-base font-semibold text-white shadow-[0_14px_28px_rgba(37,99,235,0.35)] transition hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-200"
         >
           Log In
         </button>
@@ -79,20 +77,20 @@
 
       <div class="my-8 h-px w-full bg-slate-200" />
 
-      <div class="text-center text-sm text-slate-500">
+      <div class="text-center text-sm text-slate-600">
         <p class="font-semibold text-slate-900">
           Don&apos;t have an account??
         </p>
         <div class="mt-3 space-y-2">
           <button
             type="button"
-            class="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700 hover:shadow-md"
+            class="w-full rounded-full border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-800 shadow-sm transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700 hover:shadow-md"
           >
             Create an account as Customer
           </button>
           <button
             type="button"
-            class="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700 hover:shadow-md"
+            class="w-full rounded-full border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-800 shadow-sm transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700 hover:shadow-md"
           >
             Login as Driver
           </button>
