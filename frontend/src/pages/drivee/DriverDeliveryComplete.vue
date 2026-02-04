@@ -133,9 +133,12 @@
         </div>
 
         <div class="shrink-0 border-t border-[#dbe0e6] bg-white/80 px-4 py-4 backdrop-blur-md">
-          <button class="flex h-14 w-full items-center justify-center rounded-xl bg-blue-600 text-base font-bold text-white shadow-lg transition active:scale-[0.98]">
+          <router-link
+            to="/driver/dashboard"
+            class="flex h-14 w-full items-center justify-center rounded-xl bg-blue-600 text-base font-bold text-white shadow-lg transition active:scale-[0.98]"
+          >
             Complete Delivery
-          </button>
+          </router-link>
         </div>
         <div class="h-6 bg-white"></div>
       </div>
