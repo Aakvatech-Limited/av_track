@@ -38,7 +38,7 @@
             </div>
             <label class="relative flex h-[31px] w-[51px] cursor-pointer items-center rounded-full bg-slate-300 p-0.5" :class="{ 'bg-blue-500': isActive }">
               <div class="h-full w-[27px] rounded-full bg-white shadow-md transition-transform" :class="{ 'translate-x-5': isActive }"></div>
-              <input class="invisible absolute" type="checkbox" v-model="isActive" />
+              <input class="invisible absolute" type="checkbox" v-model="isActive" @change="toggleOnline" />
             </label>
           </div>
         </div>
@@ -199,6 +199,16 @@ const loadDriverProfile = async () => {
     isActive.value = Boolean(profile.is_online || profile.is_active)
   } catch (error) {
     // keep empty values if profile not available
+  }
+}
+
+const toggleOnline = async () => {
+  try {
+    const { setDriverOnline } = await import('@/utils/auth')
+    const result = await setDriverOnline(isActive.value)
+    isActive.value = Boolean(result?.is_online)
+  } catch (error) {
+    isActive.value = !isActive.value
   }
 }
 
