@@ -23,7 +23,7 @@
         </div>
 
         <!-- Active Status -->
-        <div class="bg-slate-50 border border-slate-200 rounded-xl p-5 mb-6">
+        <div class="bg-slate-50 border border-slate-200 rounded-xl p-5 mb-6 shadow-[0_16px_40px_rgba(15,23,42,0.08)]">
           <div class="flex items-center justify-between">
             <div class="flex items-center gap-4">
               <div class="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-500/15 text-emerald-600">
@@ -70,7 +70,7 @@
             High Priority
           </span>
         </div>
-        <div v-if="currentTask" class="rounded-xl overflow-hidden shadow-lg bg-white border border-slate-200">
+        <div v-if="currentTask" class="rounded-xl overflow-hidden bg-white border border-slate-200 shadow-[0_18px_45px_rgba(15,23,42,0.1)]">
           <div class="relative h-44 bg-gradient-to-br from-slate-200 to-slate-300">
             <div class="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent"></div>
             <div class="absolute bottom-3 left-4 flex items-center gap-2">
@@ -118,14 +118,14 @@
             </div>
           </div>
         </div>
-        <div v-else class="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-6 text-center text-sm text-slate-500">
+        <div v-else class="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-6 text-center text-sm text-slate-500 shadow-[0_14px_36px_rgba(15,23,42,0.08)]">
           No active task right now.
         </div>
 
         <!-- Upcoming Stops -->
         <h2 class="text-xl font-bold mt-6 mb-3">Upcoming Stops</h2>
         <div v-if="upcomingStops.length" class="space-y-3 pb-8">
-          <div v-for="stop in upcomingStops" :key="stop.id" class="flex items-center gap-4 p-3 rounded-lg bg-white border border-slate-200">
+          <div v-for="stop in upcomingStops" :key="stop.id" class="flex items-center gap-4 p-3 rounded-lg bg-white border border-slate-200 shadow-[0_10px_28px_rgba(15,23,42,0.08)]">
             <div class="flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 text-slate-500 font-bold">
               {{ stop.id }}
             </div>
@@ -138,7 +138,7 @@
             </svg>
           </div>
         </div>
-        <div v-else class="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-6 text-center text-sm text-slate-500">
+        <div v-else class="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-6 text-center text-sm text-slate-500 shadow-[0_14px_36px_rgba(15,23,42,0.08)]">
           No upcoming stops right now.
         </div>
 
