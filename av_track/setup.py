@@ -24,6 +24,39 @@ custom_fields = {
             "insert_after": "track_customer_lat",
         },
     ]
+    ,
+    "Company": [
+        {
+            "fieldname": "track_pickup_lat",
+            "fieldtype": "Float",
+            "label": "Pickup Latitude",
+            "precision": "8",
+            "insert_after": "email",
+        },
+        {
+            "fieldname": "track_pickup_lng",
+            "fieldtype": "Float",
+            "label": "Pickup Longitude",
+            "precision": "8",
+            "insert_after": "track_pickup_lat",
+        },
+    ],
+    "Warehouse": [
+        {
+            "fieldname": "track_pickup_lat",
+            "fieldtype": "Float",
+            "label": "Pickup Latitude",
+            "precision": "8",
+            "insert_after": "mobile_no",
+        },
+        {
+            "fieldname": "track_pickup_lng",
+            "fieldtype": "Float",
+            "label": "Pickup Longitude",
+            "precision": "8",
+            "insert_after": "track_pickup_lat",
+        },
+    ],
 }
 
 
