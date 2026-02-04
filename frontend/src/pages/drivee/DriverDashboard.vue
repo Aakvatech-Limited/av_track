@@ -66,11 +66,11 @@
         <!-- Current Task -->
         <div class="flex items-center justify-between mb-2">
           <h2 class="text-xl font-bold">Current Task</h2>
-          <span class="rounded-full bg-red-500/10 px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-red-400">
+          <span v-if="currentTask" class="rounded-full bg-red-500/10 px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-red-400">
             High Priority
           </span>
         </div>
-        <div class="rounded-xl overflow-hidden shadow-lg bg-white border border-slate-200">
+        <div v-if="currentTask" class="rounded-xl overflow-hidden shadow-lg bg-white border border-slate-200">
           <div class="relative h-44 bg-gradient-to-br from-slate-200 to-slate-300">
             <div class="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent"></div>
             <div class="absolute bottom-3 left-4 flex items-center gap-2">
@@ -79,17 +79,19 @@
                   <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
                 </svg>
               </span>
-              <span class="text-white text-xs font-bold uppercase">1.2 miles away</span>
+              <span class="text-white text-xs font-bold uppercase">
+                {{ currentTask.distance_label || 'En Route' }}
+              </span>
             </div>
           </div>
           <div class="p-4">
             <div class="flex items-start justify-between mb-4">
               <div>
-                <p class="text-lg font-bold">123 Delivery Ln</p>
-                <p class="text-slate-500 text-sm">Apartment 4B, Westside</p>
+                <p class="text-lg font-bold">{{ currentTask.dropoff_address || 'Dropoff Address' }}</p>
+                <p class="text-slate-500 text-sm">{{ currentTask.pickup_address || '' }}</p>
               </div>
               <div class="text-right">
-                <p class="text-blue-400 text-lg font-bold">8 min</p>
+                <p class="text-blue-400 text-lg font-bold">{{ currentTask.eta_label || '--' }}</p>
                 <p class="text-slate-400 text-[10px] uppercase font-bold">ETA</p>
               </div>
             </div>
@@ -97,7 +99,9 @@
               <svg class="h-5 w-5 text-slate-400" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
               </svg>
-              <p class="text-slate-600 text-sm font-medium">Customer: John Doe</p>
+              <p class="text-slate-600 text-sm font-medium">
+                Customer: {{ currentTask.customer_name || '—' }}
+              </p>
             </div>
             <div class="flex gap-2 mt-3">
               <button class="flex-1 flex items-center justify-center rounded-lg h-12 px-4 bg-blue-500 text-white text-base font-bold">
@@ -113,6 +117,9 @@
               </button>
             </div>
           </div>
+        </div>
+        <div v-else class="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-6 text-center text-sm text-slate-500">
+          No active task right now.
         </div>
 
         <!-- Upcoming Stops -->
@@ -181,6 +188,8 @@ const upcomingStops = ref([
   },
 ])
 
+const currentTask = ref(null)
+
 const getInitials = (name) => {
   if (!name) return ''
   const parts = name.trim().split(/\s+/)
@@ -228,4 +237,16 @@ const loadDriverProgress = async () => {
 }
 
 loadDriverProgress()
+
+const loadCurrentTask = async () => {
+  try {
+    const { getCurrentTask } = await import('@/utils/auth')
+    const task = await getCurrentTask()
+    currentTask.value = task || null
+  } catch (error) {
+    currentTask.value = null
+  }
+}
+
+loadCurrentTask()
 </script>
