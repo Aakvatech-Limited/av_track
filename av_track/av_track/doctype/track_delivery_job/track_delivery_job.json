@@ -39,7 +39,13 @@
   "column_10",
   "last_status_at",
   "notes_section",
-  "notes"
+  "notes",
+  "timestamps_section",
+  "assigned_at",
+  "column_11",
+  "picked_up_at",
+  "column_12",
+  "delivered_at"
  ],
  "fields": [
   {
@@ -50,6 +56,7 @@
   {
    "fieldname": "company",
    "fieldtype": "Link",
+   "in_list_view": 1,
    "label": "Company",
    "options": "Company"
   },
@@ -60,8 +67,9 @@
   {
    "fieldname": "status",
    "fieldtype": "Select",
+   "in_list_view": 1,
    "label": "Status",
-   "options": "Assigned\nPicked Up\nEn Route\nDelivered\nFailed"
+   "options": "\nAssigned\nPicked Up\nEn Route\nDelivered\nFailed"
   },
   {
    "fieldname": "column_2",
@@ -70,6 +78,7 @@
   {
    "fieldname": "assigned_driver",
    "fieldtype": "Link",
+   "in_list_view": 1,
    "label": "Assigned Driver",
    "options": "Driver"
   },
@@ -81,6 +90,7 @@
   {
    "fieldname": "source_doctype",
    "fieldtype": "Select",
+   "in_list_view": 1,
    "label": "Source DocType",
    "options": "Sales Order\nPOS Invoice\nDelivery Note"
   },
@@ -91,6 +101,7 @@
   {
    "fieldname": "source_docname",
    "fieldtype": "Dynamic Link",
+   "in_list_view": 1,
    "label": "Source Document",
    "options": "source_doctype"
   },
@@ -201,47 +212,47 @@
    "fieldtype": "Datetime",
    "label": "Last Status At"
   },
-    {
-      "fieldname": "notes_section",
-      "fieldtype": "Section Break",
-      "label": "Notes"
-    },
-    {
-      "fieldname": "notes",
-      "fieldtype": "Small Text",
-      "label": "Notes"
-    },
-    {
-      "fieldname": "timestamps_section",
-      "fieldtype": "Section Break",
-      "label": "Status Timestamps"
-    },
-    {
-      "fieldname": "assigned_at",
-      "fieldtype": "Datetime",
-      "label": "Assigned At"
-    },
-    {
-      "fieldname": "column_11",
-      "fieldtype": "Column Break"
-    },
-    {
-      "fieldname": "picked_up_at",
-      "fieldtype": "Datetime",
-      "label": "Picked Up At"
-    },
-    {
-      "fieldname": "column_12",
-      "fieldtype": "Column Break"
-    },
-    {
-      "fieldname": "delivered_at",
-      "fieldtype": "Datetime",
-      "label": "Delivered At"
-    }
-  ],
+  {
+   "fieldname": "notes_section",
+   "fieldtype": "Section Break",
+   "label": "Notes"
+  },
+  {
+   "fieldname": "notes",
+   "fieldtype": "Small Text",
+   "label": "Notes"
+  },
+  {
+   "fieldname": "timestamps_section",
+   "fieldtype": "Section Break",
+   "label": "Status Timestamps"
+  },
+  {
+   "fieldname": "assigned_at",
+   "fieldtype": "Datetime",
+   "label": "Assigned At"
+  },
+  {
+   "fieldname": "column_11",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "picked_up_at",
+   "fieldtype": "Datetime",
+   "label": "Picked Up At"
+  },
+  {
+   "fieldname": "column_12",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "delivered_at",
+   "fieldtype": "Datetime",
+   "label": "Delivered At"
+  }
+ ],
  "links": [],
- "modified": "2026-02-04 10:40:44.576684",
+ "modified": "2026-02-04 12:46:57.428896",
  "modified_by": "Administrator",
  "module": "AV Track",
  "name": "Track Delivery Job",

@@ -32,7 +32,6 @@ def create_from_source(doc, method=None):
 
     job = frappe.new_doc("Track Delivery Job")
     job.company = getattr(doc, "company", None)
-    job.status = "Assigned"
     job.source_doctype = doc.doctype
     job.source_docname = doc.name
     job.customer_name = getattr(doc, "customer_name", None) or getattr(doc, "customer", None)
