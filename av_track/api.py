@@ -32,7 +32,7 @@ def _get_driver_account_for_user(user):
 
 
 @frappe.whitelist()
-def get_driver_profile():
+def get_driver_dashboard():
     user = frappe.session.user
     if not user or user == "Guest":
         frappe.throw("Authentication required.")
@@ -45,7 +45,18 @@ def get_driver_profile():
         ignore_permissions=True,
     )
     if not account:
-        return None
+        return {
+            "profile": None,
+            "progress": {
+                "assigned_total": 0,
+                "delivered_total": 0,
+                "remaining": 0,
+                "goal": 0,
+                "percent": 0,
+            },
+            "current_task": None,
+            "upcoming_stops": [],
+        }
 
     account = account[0]
     driver_id = account.get("driver")
@@ -53,12 +64,91 @@ def get_driver_profile():
     if driver_id:
         full_name = frappe.db.get_value("Driver", driver_id, "full_name")
 
-    return {
+    profile = {
         "account": account.get("name"),
         "driver_id": driver_id,
         "full_name": full_name,
         "is_active": account.get("is_active"),
         "is_online": account.get("is_online"),
+    }
+
+    start = get_datetime(f"{nowdate()} 00:00:00")
+    end = get_datetime(f"{nowdate()} 23:59:59")
+
+    assigned_total = frappe.db.count(
+        "Track Delivery Job",
+        filters={
+            "assigned_driver": driver_id,
+            "creation": ["between", [start, end]],
+        },
+    )
+
+    delivered_total = frappe.db.count(
+        "Track Delivery Job",
+        filters={
+            "assigned_driver": driver_id,
+            "status": "Delivered",
+            "creation": ["between", [start, end]],
+        },
+    )
+
+    goal = assigned_total
+    remaining = max(goal - delivered_total, 0)
+    percent = round((delivered_total / goal) * 100) if goal else 0
+
+    current_task = frappe.get_all(
+        "Track Delivery Job",
+        filters={
+            "assigned_driver": driver_id,
+            "status": "En Route",
+        },
+        fields=[
+            "name",
+            "status",
+            "pickup_address",
+            "dropoff_address",
+            "customer_name",
+            "customer_phone",
+            "pickup_lat",
+            "pickup_lng",
+            "dropoff_lat",
+            "dropoff_lng",
+            "scheduled_dropoff",
+            "last_status_at",
+        ],
+        order_by="modified desc",
+        limit=1,
+        ignore_permissions=True,
+    )
+
+    upcoming_stops = frappe.get_all(
+        "Track Delivery Job",
+        filters={
+            "assigned_driver": driver_id,
+            "status": "Picked Up",
+        },
+        fields=[
+            "name",
+            "dropoff_address",
+            "pickup_address",
+            "status",
+            "last_status_at",
+        ],
+        order_by="modified asc",
+        ignore_permissions=True,
+    )
+
+    return {
+        "profile": profile,
+        "progress": {
+            "assigned_total": assigned_total,
+            "delivered_total": delivered_total,
+            "remaining": remaining,
+            "goal": goal,
+            "percent": percent,
+        },
+        "current_task": current_task[0] if current_task else None,
+        "upcoming_stops": upcoming_stops,
     }
 
 
@@ -89,154 +179,8 @@ def set_driver_online(is_online):
     return {"is_online": bool(online_value)}
 
 
-@frappe.whitelist()
-def get_driver_progress():
-    user = frappe.session.user
-    if not user or user == "Guest":
-        frappe.throw("Authentication required.")
-
-    account = _get_driver_account_for_user(user)
-    if not account:
-        return {
-            "assigned_total": 0,
-            "delivered_total": 0,
-            "remaining": 0,
-            "goal": 0,
-            "percent": 0,
-        }
-
-    start = get_datetime(f"{nowdate()} 00:00:00")
-    end = get_datetime(f"{nowdate()} 23:59:59")
-
-    assigned_total = frappe.db.count(
-        "Track Delivery Job",
-        filters={
-            "assigned_driver": account["driver"],
-            "creation": ["between", [start, end]],
-        },
-    )
-
-    delivered_total = frappe.db.count(
-        "Track Delivery Job",
-        filters={
-            "assigned_driver": account["driver"],
-            "status": "Delivered",
-            "creation": ["between", [start, end]],
-        },
-    )
-
-    goal = assigned_total
-    remaining = max(goal - delivered_total, 0)
-    percent = round((delivered_total / goal) * 100) if goal else 0
-
-    return {
-        "assigned_total": assigned_total,
-        "delivered_total": delivered_total,
-        "remaining": remaining,
-        "goal": goal,
-        "percent": percent,
-    }
 
 
-@frappe.whitelist()
-def get_assigned_jobs():
-    user = frappe.session.user
-    if not user or user == "Guest":
-        frappe.throw("Authentication required.")
-
-    account = _get_driver_account_for_user(user)
-    if not account:
-        return []
-
-    jobs = frappe.get_all(
-        "Track Delivery Job",
-        filters={
-            "assigned_driver": account["driver"],
-            "status": ["not in", ["Delivered", "Failed"]],
-        },
-        fields=[
-            "name",
-            "status",
-            "pickup_address",
-            "dropoff_address",
-            "customer_name",
-            "customer_phone",
-            "scheduled_pickup",
-            "scheduled_dropoff",
-            "last_status_at",
-        ],
-        order_by="modified desc",
-        ignore_permissions=True,
-    )
-    return jobs
-
-
-@frappe.whitelist()
-def get_current_task():
-    user = frappe.session.user
-    if not user or user == "Guest":
-        frappe.throw("Authentication required.")
-
-    account = _get_driver_account_for_user(user)
-    if not account:
-        return None
-
-    job = frappe.get_all(
-        "Track Delivery Job",
-        filters={
-            "assigned_driver": account["driver"],
-            "status": "En Route",
-        },
-        fields=[
-            "name",
-            "status",
-            "pickup_address",
-            "dropoff_address",
-            "customer_name",
-            "customer_phone",
-            "pickup_lat",
-            "pickup_lng",
-            "dropoff_lat",
-            "dropoff_lng",
-            "scheduled_dropoff",
-            "last_status_at",
-        ],
-        order_by="modified desc",
-        limit=1,
-        ignore_permissions=True,
-    )
-
-    return job[0] if job else None
-
-
-@frappe.whitelist()
-def get_upcoming_stops():
-    user = frappe.session.user
-    if not user or user == "Guest":
-        frappe.throw("Authentication required.")
-
-    account = _get_driver_account_for_user(user)
-    if not account:
-        return []
-
-    jobs = frappe.get_all(
-        "Track Delivery Job",
-        filters={
-            "assigned_driver": account["driver"],
-            "status": "Picked Up",
-        },
-        fields=[
-            "name",
-            "dropoff_address",
-            "pickup_address",
-            "status",
-            "last_status_at",
-        ],
-        order_by="modified asc",
-        ignore_permissions=True,
-    )
-
-    return jobs
 
 
 @frappe.whitelist()

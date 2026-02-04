@@ -74,16 +74,6 @@ export const getDriverAccount = async (user) => {
   return data.message
 }
 
-export const getDriverProfile = async () => {
-  const data = await request('/api/method/av_track.api.get_driver_profile', {
-    method: 'POST',
-    headers: withCsrf({
-      'Content-Type': 'application/x-www-form-urlencoded',
-    }),
-  })
-  return data.message
-}
-
 export const setDriverOnline = async (isOnline) => {
   const data = await request('/api/method/av_track.api.set_driver_online', {
     method: 'POST',
@@ -95,28 +85,8 @@ export const setDriverOnline = async (isOnline) => {
   return data.message
 }
 
-export const getDriverProgress = async () => {
-  const data = await request('/api/method/av_track.api.get_driver_progress', {
-    method: 'POST',
-    headers: withCsrf({
-      'Content-Type': 'application/x-www-form-urlencoded',
-    }),
-  })
-  return data.message
-}
-
-export const getCurrentTask = async () => {
-  const data = await request('/api/method/av_track.api.get_current_task', {
-    method: 'POST',
-    headers: withCsrf({
-      'Content-Type': 'application/x-www-form-urlencoded',
-    }),
-  })
-  return data.message
-}
-
-export const getUpcomingStops = async () => {
-  const data = await request('/api/method/av_track.api.get_upcoming_stops', {
+export const getDriverDashboard = async () => {
+  const data = await request('/api/method/av_track.api.get_driver_dashboard', {
     method: 'POST',
     headers: withCsrf({
       'Content-Type': 'application/x-www-form-urlencoded',

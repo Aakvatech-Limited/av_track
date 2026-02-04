@@ -182,20 +182,6 @@ const getInitials = (name) => {
   return (first + second).toUpperCase()
 }
 
-const loadDriverProfile = async () => {
-  try {
-    const { getDriverProfile } = await import('@/utils/auth')
-    const profile = await getDriverProfile()
-    if (!profile) return
-    driverName.value = profile.full_name || ''
-    driverId.value = profile.driver_id || ''
-    driverInitials.value = getInitials(driverName.value)
-    isActive.value = Boolean(profile.is_online || profile.is_active)
-  } catch (error) {
-    // keep empty values if profile not available
-  }
-}
-
 const toggleOnline = async () => {
   try {
     const { setDriverOnline } = await import('@/utils/auth')
@@ -206,48 +192,34 @@ const toggleOnline = async () => {
   }
 }
 
-loadDriverProfile()
-
-const loadDriverProgress = async () => {
+const loadDriverDashboard = async () => {
   try {
-    const { getDriverProgress } = await import('@/utils/auth')
-    const progress = await getDriverProgress()
-    if (!progress) return
+    const { getDriverDashboard } = await import('@/utils/auth')
+    const data = await getDriverDashboard()
+    if (!data) return
+
+    const profile = data.profile || {}
+    driverName.value = profile.full_name || ''
+    driverId.value = profile.driver_id || ''
+    driverInitials.value = getInitials(driverName.value)
+    isActive.value = Boolean(profile.is_online || profile.is_active)
+
+    const progress = data.progress || {}
     completedDeliveries.value = progress.delivered_total || 0
     dailyGoal.value = progress.goal || progress.assigned_total || 0
-  } catch (error) {
-    // keep defaults
-  }
-}
 
-loadDriverProgress()
+    currentTask.value = data.current_task || null
 
-const loadCurrentTask = async () => {
-  try {
-    const { getCurrentTask } = await import('@/utils/auth')
-    const task = await getCurrentTask()
-    currentTask.value = task || null
-  } catch (error) {
-    currentTask.value = null
-  }
-}
-
-loadCurrentTask()
-
-const loadUpcomingStops = async () => {
-  try {
-    const { getUpcomingStops } = await import('@/utils/auth')
-    const stops = await getUpcomingStops()
-    upcomingStops.value = (stops || []).map((stop, index) => ({
+    upcomingStops.value = (data.upcoming_stops || []).map((stop, index) => ({
       id: index + 1,
       address: stop.dropoff_address || stop.pickup_address || 'Stop',
       distance: '',
       type: 'Picked Up',
     }))
   } catch (error) {
-    upcomingStops.value = []
+    // keep defaults
   }
 }
 
-loadUpcomingStops()
+loadDriverDashboard()
 </script>
