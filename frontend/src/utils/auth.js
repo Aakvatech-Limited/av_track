@@ -94,3 +94,13 @@ export const setDriverOnline = async (isOnline) => {
   })
   return data.message
 }
+
+export const getDriverProgress = async () => {
+  const data = await request('/api/method/av_track.api.get_driver_progress', {
+    method: 'POST',
+    headers: withCsrf({
+      'Content-Type': 'application/x-www-form-urlencoded',
+    }),
+  })
+  return data.message
+}

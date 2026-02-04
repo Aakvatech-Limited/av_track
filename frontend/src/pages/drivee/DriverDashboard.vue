@@ -148,15 +148,16 @@ const isActive = ref(false)
 const driverName = ref('')
 const driverId = ref('')
 const driverInitials = ref('')
-const completedDeliveries = ref(4)
-const dailyGoal = ref(10)
+const completedDeliveries = ref(0)
+const dailyGoal = ref(0)
 
 const progressPercentage = computed(() => {
+  if (!dailyGoal.value) return 0
   return Math.round((completedDeliveries.value / dailyGoal.value) * 100)
 })
 
 const remainingDeliveries = computed(() => {
-  return dailyGoal.value - completedDeliveries.value
+  return Math.max(dailyGoal.value - completedDeliveries.value, 0)
 })
 
 const upcomingStops = ref([
@@ -213,4 +214,18 @@ const toggleOnline = async () => {
 }
 
 loadDriverProfile()
+
+const loadDriverProgress = async () => {
+  try {
+    const { getDriverProgress } = await import('@/utils/auth')
+    const progress = await getDriverProgress()
+    if (!progress) return
+    completedDeliveries.value = progress.delivered_total || 0
+    dailyGoal.value = progress.goal || progress.assigned_total || 0
+  } catch (error) {
+    // keep defaults
+  }
+}
+
+loadDriverProgress()
 </script>

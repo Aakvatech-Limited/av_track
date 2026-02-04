@@ -1,7 +1,7 @@
 from __future__ import unicode_literals
 
 import frappe
-from frappe.utils import now_datetime
+from frappe.utils import now_datetime, get_datetime, nowdate
 
 
 @frappe.whitelist()
@@ -87,6 +87,55 @@ def set_driver_online(is_online):
         online_value,
     )
     return {"is_online": bool(online_value)}
+
+
+@frappe.whitelist()
+def get_driver_progress():
+    user = frappe.session.user
+    if not user or user == "Guest":
+        frappe.throw("Authentication required.")
+
+    account = _get_driver_account_for_user(user)
+    if not account:
+        return {
+            "assigned_total": 0,
+            "delivered_total": 0,
+            "remaining": 0,
+            "goal": 0,
+            "percent": 0,
+        }
+
+    start = get_datetime(f"{nowdate()} 00:00:00")
+    end = get_datetime(f"{nowdate()} 23:59:59")
+
+    assigned_total = frappe.db.count(
+        "Track Delivery Job",
+        filters={
+            "assigned_driver": account["driver"],
+            "creation": ["between", [start, end]],
+        },
+    )
+
+    delivered_total = frappe.db.count(
+        "Track Delivery Job",
+        filters={
+            "assigned_driver": account["driver"],
+            "status": "Delivered",
+            "creation": ["between", [start, end]],
+        },
+    )
+
+    goal = assigned_total
+    remaining = max(goal - delivered_total, 0)
+    percent = round((delivered_total / goal) * 100) if goal else 0
+
+    return {
+        "assigned_total": assigned_total,
+        "delivered_total": delivered_total,
+        "remaining": remaining,
+        "goal": goal,
+        "percent": percent,
+    }
 
 
 @frappe.whitelist()
