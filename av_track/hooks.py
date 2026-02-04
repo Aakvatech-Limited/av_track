@@ -84,6 +84,7 @@ app_license = "mit"
 
 # before_install = "av_track.install.before_install"
 # after_install = "av_track.install.after_install"
+after_migrate = "av_track.setup.after_migrate"
 
 # Uninstallation
 # ------------
@@ -155,6 +156,7 @@ doc_events = {
 		"on_submit": "av_track.track_job.create_from_source"
 	},
 }
+
 
 # Scheduled Tasks
 # ---------------
