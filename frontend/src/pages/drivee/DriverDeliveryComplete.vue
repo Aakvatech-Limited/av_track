@@ -82,17 +82,38 @@
               </svg>
               Customer Signature
             </h3>
-            <div class="rounded-xl border-2 border-dashed border-[#dbe0e6] bg-white px-6 py-10">
-              <div class="flex flex-col items-center gap-1">
-                <p class="text-lg font-bold tracking-[-0.015em] text-[#111418]">Sign here</p>
-                <p class="text-sm font-normal text-[#64748b]">Please have the customer sign within the box</p>
+            <div class="rounded-2xl border border-[#e3e8ef] bg-white p-4">
+              <div class="flex items-center justify-between">
+                <div>
+                  <p class="text-sm font-semibold text-[#111418]">Sign here</p>
+                  <p class="text-xs text-[#64748b]">Please have the customer sign within the box</p>
+                </div>
+                <button
+                  type="button"
+                  class="rounded-full bg-[#f0f2f4] px-3 py-1 text-xs font-semibold text-slate-600"
+                  @click="clearSignature"
+                >
+                  Clear Signature
+                </button>
               </div>
-              <div class="my-4 flex h-32 w-full items-end justify-center border-b border-gray-300">
-                <p class="mb-2 text-xs uppercase tracking-widest text-gray-300">X _______________________</p>
+              <div class="mt-4">
+                <div class="relative h-40 w-full overflow-hidden rounded-xl border-2 border-dashed border-[#dbe0e6] bg-[#f8fafc]">
+                  <canvas
+                    ref="signatureCanvas"
+                    class="h-full w-full"
+                    aria-label="Signature canvas"
+                  ></canvas>
+                  <div
+                    v-if="!hasSignature"
+                    class="pointer-events-none absolute inset-0 flex items-center justify-center text-slate-400"
+                  >
+                    <div class="flex flex-col items-center gap-1 text-sm">
+                      <span class="font-medium">Tap and draw to sign</span>
+                      <span class="text-xs">Use finger or stylus</span>
+                    </div>
+                  </div>
+                </div>
               </div>
-              <button class="flex h-10 min-w-[120px] items-center justify-center rounded-lg bg-[#f0f2f4] text-sm font-bold text-[#111418]">
-                Clear Signature
-              </button>
             </div>
           </div>
 
@@ -123,8 +144,78 @@
 </template>
 
 <script>
+import SignaturePad from 'signature_pad'
+
 export default {
   name: 'DriverDeliveryComplete',
+  data() {
+    return {
+      hasSignature: false,
+      signaturePad: null,
+    }
+  },
+  mounted() {
+    this.setupSignatureCanvas()
+    window.addEventListener('resize', this.resizeSignatureCanvas)
+  },
+  beforeUnmount() {
+    window.removeEventListener('resize', this.resizeSignatureCanvas)
+    this.destroySignaturePad()
+  },
+  methods: {
+    setupSignatureCanvas() {
+      const canvas = this.$refs.signatureCanvas
+      if (!canvas) return
+      this.resizeSignatureCanvas()
+      this.signaturePad = new SignaturePad(canvas, {
+        minWidth: 1.6,
+        maxWidth: 2.4,
+        penColor: '#0f172a',
+        backgroundColor: 'rgba(0,0,0,0)',
+      })
+      this.signaturePad.onBegin = () => {
+        this.hasSignature = true
+      }
+      this.signaturePad.onEnd = () => {
+        this.hasSignature = !this.signaturePad.isEmpty()
+      }
+      canvas.addEventListener('pointerdown', this.handleSignatureStart)
+      canvas.addEventListener('touchstart', this.handleSignatureStart, { passive: true })
+    },
+    resizeSignatureCanvas() {
+      const canvas = this.$refs.signatureCanvas
+      if (!canvas) return
+      const rect = canvas.getBoundingClientRect()
+      const ratio = window.devicePixelRatio || 1
+      const wasEmpty = this.signaturePad ? this.signaturePad.isEmpty() : true
+      canvas.width = rect.width * ratio
+      canvas.height = rect.height * ratio
+      canvas.style.width = `${rect.width}px`
+      canvas.style.height = `${rect.height}px`
+      if (this.signaturePad) {
+        this.signaturePad.clear()
+        this.signaturePad._resizeCanvas()
+        if (!wasEmpty) {
+          this.hasSignature = false
+        }
+      }
+    },
+    clearSignature() {
+      if (this.signaturePad) {
+        this.signaturePad.clear()
+      }
+      this.hasSignature = false
+    },
+    handleSignatureStart() {
+      this.hasSignature = true
+    },
+    destroySignaturePad() {
+      if (this.signaturePad) {
+        this.signaturePad.off()
+        this.signaturePad = null
+      }
+    },
+  },
 }
 </script>
 
