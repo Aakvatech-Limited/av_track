@@ -24,6 +24,12 @@ const routes = [
     meta: { requiresDriverAuth: true },
   },
   {
+    path: '/driver/complete',
+    name: 'DriverDeliveryComplete',
+    component: () => import('@/pages/drivee/DriverDeliveryComplete.vue'),
+    meta: { requiresDriverAuth: true },
+  },
+  {
     path: '/driver/account',
     name: 'DriverAccount',
     component: () => import('@/pages/drivee/DriverAccount.vue'),
