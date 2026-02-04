@@ -64,16 +64,12 @@ export const getLoggedUser = async () => {
 }
 
 export const getDriverAccount = async (user) => {
-  const data = await request('/api/method/frappe.client.get_value', {
+  const data = await request('/api/method/av_track.api.get_driver_account', {
     method: 'POST',
     headers: withCsrf({
       'Content-Type': 'application/x-www-form-urlencoded',
     }),
-    body: buildFormBody({
-      doctype: 'Track Driver Account',
-      filters: { user },
-      fieldname: 'name',
-    }),
+    body: buildFormBody({ user }),
   })
-  return data.message && data.message.name
+  return data.message
 }
