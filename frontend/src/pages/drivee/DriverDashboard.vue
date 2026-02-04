@@ -375,11 +375,11 @@ loadDriverDashboard()
 }
 .sheet-enter-active,
 .sheet-leave-active {
-  transition: transform 0.25s ease, opacity 0.25s ease;
+  transition: transform 0.28s ease, opacity 0.28s ease;
 }
 .sheet-enter-from,
 .sheet-leave-to {
-  transform: translateY(20px);
+  transform: translateY(100%);
   opacity: 0;
 }
 </style>
