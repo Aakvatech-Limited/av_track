@@ -18,6 +18,12 @@ const routes = [
     meta: { requiresDriverAuth: true },
   },
   {
+    path: '/driver/account',
+    name: 'DriverAccount',
+    component: () => import('@/pages/drivee/DriverAccount.vue'),
+    meta: { requiresDriverAuth: true },
+  },
+  {
     path: '/customer-signup',
     name: 'CustomerSignup',
     component: () => import('@/pages/CustomerSignup.vue'),
