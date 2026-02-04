@@ -1,7 +1,7 @@
 <template>
   <div class="min-h-[100dvh] bg-white text-slate-900">
     <div class="min-h-[100dvh] w-full px-6 py-8 lg:px-12 lg:py-12">
-      <div class="mx-0 w-full max-w-[390px] pb-24">
+      <div class="mx-0 w-full max-w-none pb-24 lg:w-[420px]">
         <!-- Header -->
         <div class="sticky top-0 z-20 -mx-6 mb-6 flex items-center justify-between bg-white/95 px-6 py-4 backdrop-blur">
           <div class="flex items-center gap-3">
