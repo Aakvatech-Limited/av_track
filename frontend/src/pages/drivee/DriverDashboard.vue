@@ -164,7 +164,7 @@
     <transition name="sheet">
       <div
         v-if="showStopSheet"
-        class="fixed inset-x-0 bottom-0 z-50 flex max-h-[92%] w-full flex-col overflow-hidden rounded-t-3xl bg-white shadow-[0_-20px_40px_rgba(15,23,42,0.2)] lg:ml-12 lg:mr-auto lg:max-w-[420px]"
+        class="fixed inset-x-0 bottom-0 z-50 flex max-h-[92%] w-full flex-col overflow-hidden rounded-t-[32px] bg-white shadow-[0_-20px_40px_rgba(15,23,42,0.2)] lg:ml-12 lg:mr-auto lg:max-w-[420px]"
       >
         <div class="flex justify-center py-3">
           <div class="h-1.5 w-12 rounded-full bg-slate-200"></div>
