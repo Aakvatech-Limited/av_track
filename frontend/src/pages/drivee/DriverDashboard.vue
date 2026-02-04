@@ -125,7 +125,13 @@
         <!-- Upcoming Stops -->
         <h2 class="text-xl font-bold mt-6 mb-3">Upcoming Stops</h2>
         <div v-if="upcomingStops.length" class="space-y-3 pb-8">
-          <div v-for="stop in upcomingStops" :key="stop.id" class="flex items-center gap-4 p-3 rounded-lg bg-white border border-slate-200 shadow-[0_10px_28px_rgba(15,23,42,0.08)]">
+          <button
+            v-for="stop in upcomingStops"
+            :key="stop.id"
+            type="button"
+            class="flex w-full items-center gap-4 rounded-lg border border-slate-200 bg-white p-3 text-left shadow-[0_10px_28px_rgba(15,23,42,0.08)] transition hover:border-blue-200 hover:shadow-[0_14px_32px_rgba(15,23,42,0.12)]"
+            @click="openStopSheet(stop)"
+          >
             <div class="flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 text-slate-500 font-bold">
               {{ stop.id }}
             </div>
@@ -136,7 +142,7 @@
             <svg class="h-5 w-5 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M4 6h16M4 12h16M4 18h16" />
             </svg>
-          </div>
+          </button>
         </div>
         <div v-else class="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-6 text-center text-sm text-slate-500 shadow-[0_14px_36px_rgba(15,23,42,0.08)]">
           No upcoming stops right now.
@@ -147,6 +153,127 @@
         <div class="fixed bottom-1 left-1/2 -translate-x-1/2 w-32 h-1 bg-slate-200 rounded-full"></div>
       </div>
     </div>
+
+    <transition name="fade">
+      <div
+        v-if="showStopSheet"
+        class="fixed inset-0 z-40 bg-slate-900/40 backdrop-blur-sm"
+        @click="closeStopSheet"
+      ></div>
+    </transition>
+    <transition name="sheet">
+      <div
+        v-if="showStopSheet"
+        class="fixed inset-x-0 bottom-0 z-50 mx-auto flex max-h-[92%] w-full max-w-[390px] flex-col overflow-hidden rounded-t-3xl bg-white shadow-[0_-20px_40px_rgba(15,23,42,0.2)] lg:ml-12 lg:mr-0 lg:max-w-[420px]"
+      >
+        <div class="flex justify-center py-3">
+          <div class="h-1.5 w-12 rounded-full bg-slate-200"></div>
+        </div>
+        <div class="px-6 pb-4">
+          <div class="flex items-start justify-between gap-4">
+            <div class="flex-1">
+              <div class="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                <span>Stop #{{ selectedStop?.id }}</span>
+                <span class="h-1 w-1 rounded-full bg-slate-300"></span>
+                <span class="text-blue-600">In 2.4 miles</span>
+              </div>
+              <h3 class="mt-2 text-xl font-bold text-slate-900">{{ selectedStop?.address }}</h3>
+              <p class="mt-1 text-sm text-slate-500">
+                {{ selectedStop?.pickup_address || 'Pickup details available' }}
+              </p>
+            </div>
+            <button
+              type="button"
+              class="flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 text-slate-500"
+              @click="closeStopSheet"
+              aria-label="Close"
+            >
+              <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M18 6L6 18M6 6l12 12" stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
+            </button>
+          </div>
+        </div>
+        <div class="flex-1 overflow-y-auto px-6 pb-28 space-y-5">
+          <div class="grid grid-cols-2 gap-3">
+            <div class="rounded-xl border border-slate-100 bg-slate-50 p-3">
+              <p class="text-[10px] font-bold uppercase tracking-widest text-slate-400">Customer</p>
+              <p class="mt-1 text-sm font-semibold text-slate-900">{{ selectedStop?.customer_name || '—' }}</p>
+            </div>
+            <div class="rounded-xl border border-slate-100 bg-slate-50 p-3">
+              <p class="text-[10px] font-bold uppercase tracking-widest text-slate-400">Est. Window</p>
+              <p class="mt-1 text-sm font-semibold text-slate-900">2:15 PM - 2:45 PM</p>
+            </div>
+          </div>
+          <div class="rounded-xl border border-blue-100 bg-blue-50 p-4">
+            <div class="flex items-center gap-2 text-blue-600 text-xs font-bold uppercase tracking-widest">
+              <svg viewBox="0 0 24 24" class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 8h.01" stroke-linecap="round" />
+                <path d="M11 12h1v4h1" stroke-linecap="round" />
+                <circle cx="12" cy="12" r="9" />
+              </svg>
+              Delivery Notes
+            </div>
+            <p class="mt-2 text-sm text-slate-600">
+              Gate code <span class="font-semibold">1234</span>. Please leave at front desk with security if no answer.
+            </p>
+          </div>
+          <div>
+            <div class="flex items-center justify-between">
+              <h4 class="text-xs font-bold uppercase tracking-widest text-slate-500">Items to Deliver (3)</h4>
+              <span class="text-xs font-medium text-slate-400">Box ID: #B-882</span>
+            </div>
+            <div class="mt-3 space-y-2">
+              <div class="flex items-center justify-between rounded-lg border border-slate-100 bg-white p-3">
+                <div class="flex items-center gap-3 text-slate-600">
+                  <svg class="h-5 w-5 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M20.5 7.5L12 12l-8.5-4.5M3 7.5l9-4.5 9 4.5v9L12 21l-9-4.5v-9z" stroke-linecap="round" stroke-linejoin="round" />
+                  </svg>
+                  <span class="text-sm">Premium Office Chair</span>
+                </div>
+                <span class="text-xs font-bold text-slate-400">x1</span>
+              </div>
+              <div class="flex items-center justify-between rounded-lg border border-slate-100 bg-white p-3">
+                <div class="flex items-center gap-3 text-slate-600">
+                  <svg class="h-5 w-5 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 8H7a2 2 0 0 0-2 2v9h14a2 2 0 0 0 2-2V8z" stroke-linecap="round" stroke-linejoin="round" />
+                    <path d="M7 8V6a2 2 0 0 1 2-2h6l4 4" stroke-linecap="round" stroke-linejoin="round" />
+                  </svg>
+                  <span class="text-sm">Desk Organizer Kit</span>
+                </div>
+                <span class="text-xs font-bold text-slate-400">x2</span>
+              </div>
+              <div class="flex items-center justify-between rounded-lg border border-slate-100 bg-white p-3">
+                <div class="flex items-center gap-3 text-slate-600">
+                  <svg class="h-5 w-5 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M6 4h12v16H6z" stroke-linecap="round" stroke-linejoin="round" />
+                    <path d="M8 8h8M8 12h8M8 16h5" stroke-linecap="round" stroke-linejoin="round" />
+                  </svg>
+                  <span class="text-sm">A4 Paper Pack (500s)</span>
+                </div>
+                <span class="text-xs font-bold text-slate-400">x5</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="absolute bottom-0 left-0 right-0 flex flex-col gap-3 border-t border-slate-100 bg-white/95 px-6 py-5">
+          <button class="h-14 rounded-xl bg-blue-600 text-base font-bold text-white shadow-lg shadow-blue-600/20">
+            Set as Current Task
+          </button>
+          <div class="flex gap-3">
+            <button class="flex-1 rounded-xl border border-slate-200 bg-slate-100 py-3 text-sm font-semibold text-slate-700">
+              Reorder Route
+            </button>
+            <button class="flex h-12 w-12 items-center justify-center rounded-xl border border-slate-200 bg-slate-100 text-slate-700">
+              <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
+            </button>
+          </div>
+          <div class="mx-auto h-1 w-32 rounded-full bg-slate-200"></div>
+        </div>
+      </div>
+    </transition>
   </div>
 </template>
 
@@ -173,6 +300,8 @@ const remainingDeliveries = computed(() => {
 const upcomingStops = ref([])
 
 const currentTask = ref(null)
+const showStopSheet = ref(false)
+const selectedStop = ref(null)
 
 const getInitials = (name) => {
   if (!name) return ''
@@ -190,6 +319,15 @@ const toggleOnline = async () => {
   } catch (error) {
     isActive.value = !isActive.value
   }
+}
+
+const openStopSheet = (stop) => {
+  selectedStop.value = stop
+  showStopSheet.value = true
+}
+
+const closeStopSheet = () => {
+  showStopSheet.value = false
 }
 
 const loadDriverDashboard = async () => {
@@ -215,6 +353,8 @@ const loadDriverDashboard = async () => {
       address: stop.dropoff_address || stop.pickup_address || 'Stop',
       distance: '',
       type: 'Picked Up',
+      pickup_address: stop.pickup_address,
+      customer_name: stop.customer_name,
     }))
   } catch (error) {
     // keep defaults
@@ -223,3 +363,23 @@ const loadDriverDashboard = async () => {
 
 loadDriverDashboard()
 </script>
+
+<style scoped>
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.2s ease;
+}
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+.sheet-enter-active,
+.sheet-leave-active {
+  transition: transform 0.25s ease, opacity 0.25s ease;
+}
+.sheet-enter-from,
+.sheet-leave-to {
+  transform: translateY(20px);
+  opacity: 0;
+}
+</style>
