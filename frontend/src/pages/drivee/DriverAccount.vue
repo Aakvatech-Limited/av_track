@@ -51,8 +51,8 @@
               <div class="flex items-center justify-between border-t border-slate-200 px-4 py-4">
                 <div class="flex items-center gap-3">
                   <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100 text-slate-700">
-                    <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2">
-                      <path d="M12 3a9 9 0 1 0 9 9" stroke-linecap="round" />
+                    <svg viewBox="0 0 24 24" class="h-5 w-5" fill="currentColor">
+                      <path d="M21.64 13.03A9 9 0 0 1 11 3a1 1 0 0 0-1-1 10 10 0 1 0 10 10 1 1 0 0 0-1.36-.97z" />
                     </svg>
                   </span>
                   <span class="text-sm font-medium">Dark Mode</span>
@@ -108,17 +108,16 @@
             <div class="mt-3 overflow-hidden rounded-2xl border border-slate-200 bg-white">
               <div class="flex items-center justify-between px-4 py-4">
                 <div class="flex items-center gap-3">
-                  <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
-                    <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2">
-                      <path d="M12 21s7-4.4 7-11a7 7 0 1 0-14 0c0 6.6 7 11 7 11z" stroke-linecap="round" stroke-linejoin="round" />
-                      <circle cx="12" cy="10" r="2.5" />
+                  <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50 text-emerald-500">
+                    <svg viewBox="0 0 24 24" class="h-5 w-5" style="color: #22c55e" fill="currentColor">
+                      <path d="M12 2a7 7 0 0 0-7 7c0 5.25 7 12 7 12s7-6.75 7-12a7 7 0 0 0-7-7zm0 9.5A2.5 2.5 0 1 1 12 6a2.5 2.5 0 0 1 0 5.5z" />
                     </svg>
                   </span>
                   <span class="text-sm font-medium">Location Permissions</span>
                 </div>
-                <div class="flex items-center gap-2 text-sm text-emerald-600">
-                  Always
-                  <svg viewBox="0 0 24 24" class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2">
+                <div class="flex items-center gap-2 text-sm">
+                  <span class="text-emerald-500">Always</span>
+                  <svg viewBox="0 0 24 24" class="h-4 w-4 text-slate-400" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M9 18l6-6-6-6" stroke-linecap="round" stroke-linejoin="round" />
                   </svg>
                 </div>
@@ -126,10 +125,8 @@
               <div class="flex items-center justify-between border-t border-slate-200 px-4 py-4">
                 <div class="flex items-center gap-3">
                   <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100 text-slate-500">
-                    <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2">
-                      <path d="M12 18h.01" stroke-linecap="round" />
-                      <path d="M9 9a3 3 0 1 1 6 0c0 2-3 2-3 5" stroke-linecap="round" />
-                      <circle cx="12" cy="12" r="9" />
+                    <svg viewBox="0 0 24 24" class="h-5 w-5" style="color: #64748b" fill="currentColor">
+                      <path d="M12 2a10 10 0 1 0 10 10A10.01 10.01 0 0 0 12 2zm0 15.2a1.2 1.2 0 1 1 1.2-1.2 1.2 1.2 0 0 1-1.2 1.2zm1.8-6a2 2 0 0 0-1.3 1.8v.3a1 1 0 0 1-2 0v-.5a4 4 0 1 1 6.7-3 3.7 3.7 0 0 1-1.4 2.9z" />
                     </svg>
                   </span>
                   <span class="text-sm font-medium">Help &amp; Support</span>
