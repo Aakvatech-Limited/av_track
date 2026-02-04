@@ -201,17 +201,45 @@
    "fieldtype": "Datetime",
    "label": "Last Status At"
   },
-  {
-   "fieldname": "notes_section",
-   "fieldtype": "Section Break",
-   "label": "Notes"
-  },
-  {
-   "fieldname": "notes",
-   "fieldtype": "Small Text",
-   "label": "Notes"
-  }
- ],
+    {
+      "fieldname": "notes_section",
+      "fieldtype": "Section Break",
+      "label": "Notes"
+    },
+    {
+      "fieldname": "notes",
+      "fieldtype": "Small Text",
+      "label": "Notes"
+    },
+    {
+      "fieldname": "timestamps_section",
+      "fieldtype": "Section Break",
+      "label": "Status Timestamps"
+    },
+    {
+      "fieldname": "assigned_at",
+      "fieldtype": "Datetime",
+      "label": "Assigned At"
+    },
+    {
+      "fieldname": "column_11",
+      "fieldtype": "Column Break"
+    },
+    {
+      "fieldname": "picked_up_at",
+      "fieldtype": "Datetime",
+      "label": "Picked Up At"
+    },
+    {
+      "fieldname": "column_12",
+      "fieldtype": "Column Break"
+    },
+    {
+      "fieldname": "delivered_at",
+      "fieldtype": "Datetime",
+      "label": "Delivered At"
+    }
+  ],
  "links": [],
  "modified": "2026-02-04 10:40:44.576684",
  "modified_by": "Administrator",

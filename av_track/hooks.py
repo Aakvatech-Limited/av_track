@@ -144,6 +144,17 @@ app_license = "mit"
 # 		"on_trash": "method"
 # 	}
 # }
+doc_events = {
+	"Sales Order": {
+		"on_submit": "av_track.track_job.create_from_source"
+	},
+	"POS Invoice": {
+		"on_submit": "av_track.track_job.create_from_source"
+	},
+	"Delivery Note": {
+		"on_submit": "av_track.track_job.create_from_source"
+	},
+}
 
 # Scheduled Tasks
 # ---------------

@@ -74,17 +74,33 @@
    "fieldtype": "Attach Image",
    "label": "Brand Logo"
   },
-  {
-   "fieldname": "tracking_section",
-   "fieldtype": "Section Break",
-   "label": "Tracking"
-  },
-  {
-   "fieldname": "tracking_domain",
-   "fieldtype": "Data",
-   "label": "Tracking Link Domain"
-  }
- ],
+    {
+      "fieldname": "tracking_section",
+      "fieldtype": "Section Break",
+      "label": "Tracking"
+    },
+    {
+      "fieldname": "auto_create_jobs",
+      "fieldtype": "Check",
+      "label": "Auto Create Delivery Jobs",
+      "default": 0
+    },
+    {
+      "fieldname": "column_3",
+      "fieldtype": "Column Break"
+    },
+    {
+      "fieldname": "source_doctype",
+      "fieldtype": "Select",
+      "label": "Source DocType",
+      "options": "Sales Order\nPOS Invoice\nDelivery Note"
+    },
+    {
+      "fieldname": "tracking_domain",
+      "fieldtype": "Data",
+      "label": "Tracking Link Domain"
+    }
+  ],
  "issingle": 1,
  "links": [],
  "modified": "2026-02-04 10:40:20.755827",
