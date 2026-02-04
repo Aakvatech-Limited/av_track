@@ -1,0 +1,112 @@
+{
+ "actions": [],
+ "creation": "2026-02-04 10:39:17.264906",
+ "doctype": "DocType",
+ "document_type": "Setup",
+ "engine": "InnoDB",
+ "field_order": [
+  "map_section",
+  "map_provider",
+  "map_api_key",
+  "comms_section",
+  "sms_provider",
+  "column_1",
+  "whatsapp_provider",
+  "branding_section",
+  "brand_name",
+  "column_2",
+  "brand_logo",
+  "tracking_section",
+  "tracking_domain"
+ ],
+ "fields": [
+  {
+   "fieldname": "map_section",
+   "fieldtype": "Section Break",
+   "label": "Map Settings"
+  },
+  {
+   "fieldname": "map_provider",
+   "fieldtype": "Select",
+   "label": "Map Provider",
+   "options": "Google Maps\nMapbox"
+  },
+  {
+   "fieldname": "map_api_key",
+   "fieldtype": "Password",
+   "label": "Map API Key"
+  },
+  {
+   "fieldname": "comms_section",
+   "fieldtype": "Section Break",
+   "label": "Messaging"
+  },
+  {
+   "fieldname": "sms_provider",
+   "fieldtype": "Data",
+   "label": "SMS Provider"
+  },
+  {
+   "fieldname": "column_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "whatsapp_provider",
+   "fieldtype": "Data",
+   "label": "WhatsApp Provider"
+  },
+  {
+   "fieldname": "branding_section",
+   "fieldtype": "Section Break",
+   "label": "Branding"
+  },
+  {
+   "fieldname": "brand_name",
+   "fieldtype": "Data",
+   "label": "Brand Name"
+  },
+  {
+   "fieldname": "column_2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "brand_logo",
+   "fieldtype": "Attach Image",
+   "label": "Brand Logo"
+  },
+  {
+   "fieldname": "tracking_section",
+   "fieldtype": "Section Break",
+   "label": "Tracking"
+  },
+  {
+   "fieldname": "tracking_domain",
+   "fieldtype": "Data",
+   "label": "Tracking Link Domain"
+  }
+ ],
+ "issingle": 1,
+ "links": [],
+ "modified": "2026-02-04 10:40:20.755827",
+ "modified_by": "Administrator",
+ "module": "AV Track",
+ "name": "Track Settings",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

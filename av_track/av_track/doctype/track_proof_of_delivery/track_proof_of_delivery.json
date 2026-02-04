@@ -1,0 +1,114 @@
+{
+  "allow_copy": 0,
+  "allow_guest_to_view": 0,
+  "allow_import": 0,
+  "allow_rename": 0,
+  "autoname": "hash",
+  "custom": 0,
+  "doctype": "DocType",
+  "document_type": "Master",
+  "engine": "InnoDB",
+  "fields": [
+    {
+      "fieldname": "pod_section",
+      "fieldtype": "Section Break",
+      "label": "Proof of Delivery"
+    },
+    {
+      "fieldname": "delivery_job",
+      "fieldtype": "Link",
+      "label": "Delivery Job",
+      "options": "Track Delivery Job",
+      "reqd": 1
+    },
+    {
+      "fieldname": "column_1",
+      "fieldtype": "Column Break"
+    },
+    {
+      "fieldname": "pod_type",
+      "fieldtype": "Select",
+      "label": "Proof Type",
+      "options": "Photo\nSignature\nNote"
+    },
+    {
+      "fieldname": "column_2",
+      "fieldtype": "Column Break"
+    },
+    {
+      "fieldname": "recorded_at",
+      "fieldtype": "Datetime",
+      "label": "Recorded At"
+    },
+    {
+      "fieldname": "media_section",
+      "fieldtype": "Section Break",
+      "label": "Media"
+    },
+    {
+      "fieldname": "photo",
+      "fieldtype": "Attach",
+      "label": "Photo"
+    },
+    {
+      "fieldname": "column_3",
+      "fieldtype": "Column Break"
+    },
+    {
+      "fieldname": "signature",
+      "fieldtype": "Attach",
+      "label": "Signature"
+    },
+    {
+      "fieldname": "notes_section",
+      "fieldtype": "Section Break",
+      "label": "Notes"
+    },
+    {
+      "fieldname": "notes",
+      "fieldtype": "Small Text",
+      "label": "Notes"
+    },
+    {
+      "fieldname": "location_section",
+      "fieldtype": "Section Break",
+      "label": "Location"
+    },
+    {
+      "fieldname": "lat",
+      "fieldtype": "Float",
+      "label": "Latitude",
+      "precision": "8"
+    },
+    {
+      "fieldname": "column_4",
+      "fieldtype": "Column Break"
+    },
+    {
+      "fieldname": "lng",
+      "fieldtype": "Float",
+      "label": "Longitude",
+      "precision": "8"
+    }
+  ],
+  "istable": 0,
+  "module": "AV Track",
+  "name": "Track Proof of Delivery",
+  "permissions": [
+    {
+      "create": 1,
+      "delete": 1,
+      "email": 1,
+      "export": 1,
+      "print": 1,
+      "read": 1,
+      "report": 1,
+      "role": "System Manager",
+      "share": 1,
+      "write": 1
+    }
+  ],
+  "quick_entry": 1,
+  "read_only": 0,
+  "track_changes": 1
+}

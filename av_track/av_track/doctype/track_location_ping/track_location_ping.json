@@ -1,0 +1,105 @@
+{
+  "allow_copy": 0,
+  "allow_guest_to_view": 0,
+  "allow_import": 0,
+  "allow_rename": 0,
+  "autoname": "hash",
+  "custom": 0,
+  "doctype": "DocType",
+  "document_type": "Master",
+  "engine": "InnoDB",
+  "fields": [
+    {
+      "fieldname": "ping_section",
+      "fieldtype": "Section Break",
+      "label": "Location Ping"
+    },
+    {
+      "fieldname": "driver_account",
+      "fieldtype": "Link",
+      "label": "Driver Account",
+      "options": "Track Driver Account",
+      "reqd": 1
+    },
+    {
+      "fieldname": "column_1",
+      "fieldtype": "Column Break"
+    },
+    {
+      "fieldname": "delivery_job",
+      "fieldtype": "Link",
+      "label": "Delivery Job",
+      "options": "Track Delivery Job"
+    },
+    {
+      "fieldname": "column_2",
+      "fieldtype": "Column Break"
+    },
+    {
+      "fieldname": "pinged_at",
+      "fieldtype": "Datetime",
+      "label": "Pinged At"
+    },
+    {
+      "fieldname": "location_section",
+      "fieldtype": "Section Break",
+      "label": "Coordinates"
+    },
+    {
+      "fieldname": "lat",
+      "fieldtype": "Float",
+      "label": "Latitude",
+      "precision": "8"
+    },
+    {
+      "fieldname": "column_3",
+      "fieldtype": "Column Break"
+    },
+    {
+      "fieldname": "lng",
+      "fieldtype": "Float",
+      "label": "Longitude",
+      "precision": "8"
+    },
+    {
+      "fieldname": "column_4",
+      "fieldtype": "Column Break"
+    },
+    {
+      "fieldname": "accuracy",
+      "fieldtype": "Float",
+      "label": "Accuracy (m)",
+      "precision": "2"
+    },
+    {
+      "fieldname": "device_section",
+      "fieldtype": "Section Break",
+      "label": "Device"
+    },
+    {
+      "fieldname": "device_id",
+      "fieldtype": "Data",
+      "label": "Device ID"
+    }
+  ],
+  "istable": 0,
+  "module": "AV Track",
+  "name": "Track Location Ping",
+  "permissions": [
+    {
+      "create": 1,
+      "delete": 1,
+      "email": 1,
+      "export": 1,
+      "print": 1,
+      "read": 1,
+      "report": 1,
+      "role": "System Manager",
+      "share": 1,
+      "write": 1
+    }
+  ],
+  "quick_entry": 1,
+  "read_only": 0,
+  "track_changes": 1
+}
