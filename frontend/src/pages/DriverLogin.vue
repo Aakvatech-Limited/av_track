@@ -1,5 +1,11 @@
 <template>
   <BaseShell>
+    <InfoDialog
+      v-model="dialog.visible"
+      :title="dialog.title"
+      :message="dialog.message"
+      :variant="dialog.variant"
+    />
       <div class="min-h-[100dvh] bg-white">
         <div class="flex items-center gap-3">
           <router-link
@@ -33,7 +39,8 @@
           <label class="block text-sm font-semibold text-slate-900">
             Email
             <input
-              type="email"
+              type="text"
+              v-model.trim="email"
               placeholder="yourname@example.com"
               class="mt-2 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-700 placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
             />
@@ -44,6 +51,7 @@
             <div class="relative mt-2">
               <input
                 :type="showPassword ? 'text' : 'password'"
+                v-model="password"
                 placeholder="Enter your password"
                 class="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 pr-12 text-sm text-slate-700 placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
               />
@@ -97,20 +105,64 @@
 
 <script>
 import BaseShell from '@/components/BaseShell.vue'
+import { getDriverAccount, getLoggedUser, login, logout } from '@/utils/auth'
+import InfoDialog from '@/components/InfoDialog.vue'
 
 export default {
   name: 'DriverLogin',
   components: {
     BaseShell,
+    InfoDialog,
   },
   data() {
     return {
       showPassword: false,
+      email: '',
+      password: '',
+      dialog: {
+        visible: false,
+        title: '',
+        message: '',
+        variant: 'info',
+      },
+    }
+  },
+  mounted() {
+    if (this.$route.query.reason === 'no_driver') {
+      this.showDialog('No Driver Account', "You don't have a driver account to proceed.", 'warning')
+    }
+    if (this.$route.query.reason === 'auth') {
+      this.showDialog('Sign In Required', 'Please sign in to continue.', 'info')
     }
   },
   methods: {
-    goToDashboard() {
-      this.$router.push('/driver/dashboard')
+    showDialog(title, message, variant = 'info') {
+      this.dialog = {
+        visible: true,
+        title,
+        message,
+        variant,
+      }
+    },
+    async goToDashboard() {
+      if (!this.email || !this.password) {
+        this.showDialog('Missing Details', 'Enter your email/username and password.', 'warning')
+        return
+      }
+
+      try {
+        await login(this.email, this.password)
+        const user = await getLoggedUser()
+        const account = await getDriverAccount(user)
+        if (!account) {
+          await logout()
+          this.showDialog('No Driver Account', "You don't have a driver account to proceed.", 'warning')
+          return
+        }
+        this.$router.push('/driver/dashboard')
+      } catch (error) {
+        this.showDialog('Login Failed', 'Invalid username or password.', 'error')
+      }
     },
   },
 }

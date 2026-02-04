@@ -15,6 +15,7 @@ const routes = [
     path: '/driver/dashboard',
     name: 'DriverDashboard',
     component: () => import('@/pages/drivee/DriverDashboard.vue'),
+    meta: { requiresDriverAuth: true },
   },
   {
     path: '/customer-signup',
@@ -26,6 +27,28 @@ const routes = [
 let router = createRouter({
   history: createWebHistory('/track'),
   routes,
+})
+
+router.beforeEach(async (to) => {
+  if (!to.meta.requiresDriverAuth) return true
+
+  const { getLoggedUser, getDriverAccount } = await import('./utils/auth')
+
+  try {
+    const user = await getLoggedUser()
+    if (!user || user === 'Guest') {
+      return { path: '/driver-login', query: { reason: 'auth' } }
+    }
+
+    const account = await getDriverAccount(user)
+    if (!account) {
+      return { path: '/driver-login', query: { reason: 'no_driver' } }
+    }
+  } catch (error) {
+    return { path: '/driver-login', query: { reason: 'auth' } }
+  }
+
+  return true
 })
 
 export default router
