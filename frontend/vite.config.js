@@ -55,6 +55,9 @@ export default defineConfig({
       },
     }),
   ],
+  server: {
+    allowedHosts: ['dev-15-new'],
+  },
   resolve: {
     alias: {
       '@': path.resolve(__dirname, 'src'),
