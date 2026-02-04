@@ -210,6 +210,36 @@ def get_current_task():
 
 
 @frappe.whitelist()
+def get_upcoming_stops():
+    user = frappe.session.user
+    if not user or user == "Guest":
+        frappe.throw("Authentication required.")
+
+    account = _get_driver_account_for_user(user)
+    if not account:
+        return []
+
+    jobs = frappe.get_all(
+        "Track Delivery Job",
+        filters={
+            "assigned_driver": account["driver"],
+            "status": "Picked Up",
+        },
+        fields=[
+            "name",
+            "dropoff_address",
+            "pickup_address",
+            "status",
+            "last_status_at",
+        ],
+        order_by="modified asc",
+        ignore_permissions=True,
+    )
+
+    return jobs
+
+
+@frappe.whitelist()
 def get_job_details(job_id):
     user = frappe.session.user
     if not user or user == "Guest":

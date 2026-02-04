@@ -114,3 +114,13 @@ export const getCurrentTask = async () => {
   })
   return data.message
 }
+
+export const getUpcomingStops = async () => {
+  const data = await request('/api/method/av_track.api.get_upcoming_stops', {
+    method: 'POST',
+    headers: withCsrf({
+      'Content-Type': 'application/x-www-form-urlencoded',
+    }),
+  })
+  return data.message
+}

@@ -124,7 +124,7 @@
 
         <!-- Upcoming Stops -->
         <h2 class="text-xl font-bold mt-6 mb-3">Upcoming Stops</h2>
-        <div class="space-y-3 pb-8">
+        <div v-if="upcomingStops.length" class="space-y-3 pb-8">
           <div v-for="stop in upcomingStops" :key="stop.id" class="flex items-center gap-4 p-3 rounded-lg bg-white border border-slate-200">
             <div class="flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 text-slate-500 font-bold">
               {{ stop.id }}
@@ -137,6 +137,9 @@
               <path d="M4 6h16M4 12h16M4 18h16" />
             </svg>
           </div>
+        </div>
+        <div v-else class="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-6 text-center text-sm text-slate-500">
+          No upcoming stops right now.
         </div>
 
         <!-- Bottom Nav -->
@@ -167,26 +170,7 @@ const remainingDeliveries = computed(() => {
   return Math.max(dailyGoal.value - completedDeliveries.value, 0)
 })
 
-const upcomingStops = ref([
-  {
-    id: 2,
-    address: 'Marketplace Blvd, 402',
-    distance: '2.4',
-    type: 'Next in queue',
-  },
-  {
-    id: 3,
-    address: 'Industrial Way, 12',
-    distance: '4.1',
-    type: 'Standard Delivery',
-  },
-  {
-    id: 4,
-    address: 'Harbor Dr, 99',
-    distance: '5.8',
-    type: 'Standard Delivery',
-  },
-])
+const upcomingStops = ref([])
 
 const currentTask = ref(null)
 
@@ -249,4 +233,21 @@ const loadCurrentTask = async () => {
 }
 
 loadCurrentTask()
+
+const loadUpcomingStops = async () => {
+  try {
+    const { getUpcomingStops } = await import('@/utils/auth')
+    const stops = await getUpcomingStops()
+    upcomingStops.value = (stops || []).map((stop, index) => ({
+      id: index + 1,
+      address: stop.dropoff_address || stop.pickup_address || 'Stop',
+      distance: '',
+      type: 'Picked Up',
+    }))
+  } catch (error) {
+    upcomingStops.value = []
+  }
+}
+
+loadUpcomingStops()
 </script>
