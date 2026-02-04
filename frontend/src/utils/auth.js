@@ -73,3 +73,13 @@ export const getDriverAccount = async (user) => {
   })
   return data.message
 }
+
+export const getDriverProfile = async () => {
+  const data = await request('/api/method/av_track.api.get_driver_profile', {
+    method: 'POST',
+    headers: withCsrf({
+      'Content-Type': 'application/x-www-form-urlencoded',
+    }),
+  })
+  return data.message
+}

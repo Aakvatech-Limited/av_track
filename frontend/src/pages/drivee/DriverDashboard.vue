@@ -5,16 +5,12 @@
         <!-- Header -->
         <div class="sticky top-0 z-20 -mx-6 mb-6 flex items-center justify-between bg-white/95 px-6 py-4 backdrop-blur">
           <div class="flex items-center gap-3">
-            <div class="w-12 h-12 rounded-full bg-slate-200 overflow-hidden border-2 border-blue-500/60">
-              <img
-                src="https://i.pravatar.cc/120?img=12"
-                alt="Driver"
-                class="w-full h-full object-cover"
-              />
+            <div class="flex h-12 w-12 items-center justify-center rounded-full bg-blue-50 text-blue-600 font-semibold border-2 border-blue-500/60">
+              {{ driverInitials }}
             </div>
             <div>
-              <h1 class="text-lg font-bold leading-tight">Driver Dashboard</h1>
-              <p class="text-slate-500 text-xs">ID: #DX-9921</p>
+              <h1 class="text-lg font-bold leading-tight">{{ driverName }}</h1>
+              <p class="text-slate-500 text-xs">Driver ID: {{ driverId }}</p>
             </div>
           </div>
           <button class="relative flex h-10 w-10 items-center justify-center rounded-lg bg-slate-100 text-slate-700">
@@ -37,7 +33,7 @@
               </div>
               <div>
                 <p class="text-base font-bold">Active Status</p>
-                <p class="text-slate-500 text-sm">Accepting deliveries</p>
+                <p class="text-slate-500 text-sm">{{ isActive ? 'Online' : 'Offline' }}</p>
               </div>
             </div>
             <label class="relative flex h-[31px] w-[51px] cursor-pointer items-center rounded-full bg-slate-300 p-0.5" :class="{ 'bg-blue-500': isActive }">
@@ -148,7 +144,10 @@
 import { ref, computed } from 'vue'
 import DriverBottomNav from '@/components/DriverBottomNav.vue'
 
-const isActive = ref(true)
+const isActive = ref(false)
+const driverName = ref('')
+const driverId = ref('')
+const driverInitials = ref('')
 const completedDeliveries = ref(4)
 const dailyGoal = ref(10)
 
@@ -180,4 +179,28 @@ const upcomingStops = ref([
     type: 'Standard Delivery',
   },
 ])
+
+const getInitials = (name) => {
+  if (!name) return ''
+  const parts = name.trim().split(/\s+/)
+  const first = parts[0]?.[0] || ''
+  const second = parts[1]?.[0] || ''
+  return (first + second).toUpperCase()
+}
+
+const loadDriverProfile = async () => {
+  try {
+    const { getDriverProfile } = await import('@/utils/auth')
+    const profile = await getDriverProfile()
+    if (!profile) return
+    driverName.value = profile.full_name || ''
+    driverId.value = profile.driver_id || ''
+    driverInitials.value = getInitials(driverName.value)
+    isActive.value = Boolean(profile.is_online || profile.is_active)
+  } catch (error) {
+    // keep empty values if profile not available
+  }
+}
+
+loadDriverProfile()
 </script>

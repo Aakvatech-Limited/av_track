@@ -32,6 +32,37 @@ def _get_driver_account_for_user(user):
 
 
 @frappe.whitelist()
+def get_driver_profile():
+    user = frappe.session.user
+    if not user or user == "Guest":
+        frappe.throw("Authentication required.")
+
+    account = frappe.get_all(
+        "Track Driver Account",
+        filters={"user": user},
+        fields=["name", "driver", "is_active", "is_online"],
+        limit=1,
+        ignore_permissions=True,
+    )
+    if not account:
+        return None
+
+    account = account[0]
+    driver_id = account.get("driver")
+    full_name = None
+    if driver_id:
+        full_name = frappe.db.get_value("Driver", driver_id, "full_name")
+
+    return {
+        "account": account.get("name"),
+        "driver_id": driver_id,
+        "full_name": full_name,
+        "is_active": account.get("is_active"),
+        "is_online": account.get("is_online"),
+    }
+
+
+@frappe.whitelist()
 def get_assigned_jobs():
     user = frappe.session.user
     if not user or user == "Guest":
