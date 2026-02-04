@@ -17,7 +17,7 @@
           </h2>
         </div>
 
-        <div class="flex-1 overflow-y-auto">
+        <div class="flex-1 overflow-y-auto scrollbar-hide">
           <div class="px-4 pt-6 pb-2">
             <p class="text-xs font-bold uppercase tracking-wider text-blue-600">Order #4492-BX</p>
             <h1 class="text-2xl font-extrabold leading-tight text-[#111418]">Drop-off: Sarah Jenkins</h1>
@@ -127,3 +127,13 @@ export default {
   name: 'DriverDeliveryComplete',
 }
 </script>
+
+<style scoped>
+.scrollbar-hide {
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
+</style>
