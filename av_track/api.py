@@ -1,6 +1,10 @@
 from __future__ import unicode_literals
 
+import base64
+import binascii
+
 import frappe
+from frappe.utils.file_manager import save_file
 from frappe.utils import now_datetime, get_datetime, nowdate
 
 
@@ -29,6 +33,61 @@ def _get_driver_account_for_user(user):
         ignore_permissions=True,
     )
     return records[0] if records else None
+
+
+def _validate_status_transition(current_status, new_status):
+    if current_status == new_status:
+        return
+
+    allowed = {
+        "": {"Assigned"},
+        None: {"Assigned"},
+        "Assigned": {"Picked Up", "Failed"},
+        "Picked Up": {"En Route", "Failed"},
+        "En Route": {"Delivered", "Failed"},
+        "Delivered": set(),
+        "Failed": set(),
+    }
+    allowed_targets = allowed.get(current_status, set())
+    if new_status not in allowed_targets:
+        frappe.throw(
+            f"Invalid status transition from '{current_status or 'None'}' to '{new_status}'."
+        )
+
+
+def _data_url_to_attachment(data_url, filename, attached_to_doctype=None, attached_to_name=None):
+    if not data_url or not isinstance(data_url, str):
+        return data_url
+    if not data_url.startswith("data:"):
+        return data_url
+
+    try:
+        header, encoded = data_url.split(",", 1)
+    except ValueError:
+        frappe.throw("Invalid file payload format.")
+
+    ext = "png"
+    if "image/jpeg" in header:
+        ext = "jpg"
+    elif "image/webp" in header:
+        ext = "webp"
+    elif "image/svg+xml" in header:
+        ext = "svg"
+
+    try:
+        binary = base64.b64decode(encoded)
+    except (binascii.Error, ValueError):
+        frappe.throw("Invalid base64 file data.")
+
+    file_name = f"{filename}.{ext}"
+    file_doc = save_file(
+        fname=file_name,
+        content=binary,
+        dt=attached_to_doctype,
+        dn=attached_to_name,
+        is_private=0,
+    )
+    return file_doc.file_url
 
 
 @frappe.whitelist()
@@ -236,6 +295,8 @@ def update_job_status(job_id, status, lat=None, lng=None, note=None):
     if job.assigned_driver != account["driver"]:
         frappe.throw("Not permitted.")
 
+    _validate_status_transition(job.status, status)
+
     job.status = status
     job.last_status_at = now_datetime()
     if status == "Assigned" and not job.assigned_at:
@@ -273,13 +334,26 @@ def upload_pod(job_id, pod_type=None, note=None, photo=None, signature=None, lat
     if job.assigned_driver != account["driver"]:
         frappe.throw("Not permitted.")
 
+    photo_url = _data_url_to_attachment(
+        photo,
+        f"{job.name}-pod-photo",
+        attached_to_doctype="Track Delivery Job",
+        attached_to_name=job.name,
+    )
+    signature_url = _data_url_to_attachment(
+        signature,
+        f"{job.name}-pod-signature",
+        attached_to_doctype="Track Delivery Job",
+        attached_to_name=job.name,
+    )
+
     pod = frappe.new_doc("Track Proof of Delivery")
     pod.delivery_job = job.name
     pod.pod_type = pod_type
     pod.recorded_at = now_datetime()
     pod.notes = note
-    pod.photo = photo
-    pod.signature = signature
+    pod.photo = photo_url
+    pod.signature = signature_url
     pod.lat = lat
     pod.lng = lng
     pod.insert(ignore_permissions=True)

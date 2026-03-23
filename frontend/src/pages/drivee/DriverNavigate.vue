@@ -99,7 +99,7 @@
                 Exit
               </router-link>
               <router-link
-                to="/driver/complete"
+                :to="arrivedRoute"
                 class="flex flex-1 items-center justify-center rounded-2xl bg-blue-600 py-4 text-sm font-bold text-white shadow-lg shadow-blue-600/30 transition active:scale-95"
               >
                 <svg class="mr-2 h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -124,8 +124,10 @@
 
 <script setup>
 import { computed, nextTick, onMounted, ref } from 'vue'
+import { useRoute } from 'vue-router'
 import { getDriverDashboard } from '@/utils/auth'
 
+const route = useRoute()
 const mapContainer = ref(null)
 const hasMap = ref(false)
 const currentTask = ref(null)
@@ -161,6 +163,13 @@ const customerName = computed(() => {
   if (!currentTask.value) return 'Customer'
   return currentTask.value.customer_name || 'Customer'
 })
+
+const arrivedRoute = computed(() => ({
+  path: '/driver/complete',
+  query: {
+    job: currentTask.value?.name || route.query.job || '',
+  },
+}))
 
 const loadGoogleMapsScript = (key) => {
   if (!key) return Promise.reject(new Error('Missing map key'))

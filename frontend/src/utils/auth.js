@@ -94,3 +94,50 @@ export const getDriverDashboard = async () => {
   })
   return data.message
 }
+
+export const getJobDetails = async (jobId) => {
+  const data = await request('/api/method/av_track.api.get_job_details', {
+    method: 'POST',
+    headers: withCsrf({
+      'Content-Type': 'application/x-www-form-urlencoded',
+    }),
+    body: buildFormBody({ job_id: jobId }),
+  })
+  return data.message
+}
+
+export const updateJobStatus = async (jobId, status, payload = {}) => {
+  const data = await request('/api/method/av_track.api.update_job_status', {
+    method: 'POST',
+    headers: withCsrf({
+      'Content-Type': 'application/x-www-form-urlencoded',
+    }),
+    body: buildFormBody({
+      job_id: jobId,
+      status,
+      lat: payload.lat,
+      lng: payload.lng,
+      note: payload.note,
+    }),
+  })
+  return data.message
+}
+
+export const uploadPod = async (jobId, payload = {}) => {
+  const data = await request('/api/method/av_track.api.upload_pod', {
+    method: 'POST',
+    headers: withCsrf({
+      'Content-Type': 'application/x-www-form-urlencoded',
+    }),
+    body: buildFormBody({
+      job_id: jobId,
+      pod_type: payload.podType,
+      note: payload.note,
+      photo: payload.photo,
+      signature: payload.signature,
+      lat: payload.lat,
+      lng: payload.lng,
+    }),
+  })
+  return data.message
+}

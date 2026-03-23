@@ -109,7 +109,10 @@
               </p>
             </div>
             <div class="flex gap-2 mt-3">
-              <router-link to="/driver/navigate" class="flex-1 flex items-center justify-center rounded-lg h-12 px-4 bg-blue-500 text-white text-base font-bold">
+              <router-link
+                :to="{ path: '/driver/navigate', query: { job: currentTask.name } }"
+                class="flex-1 flex items-center justify-center rounded-lg h-12 px-4 bg-blue-500 text-white text-base font-bold"
+              >
                 <svg class="h-5 w-5 mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <path d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
                 </svg>
