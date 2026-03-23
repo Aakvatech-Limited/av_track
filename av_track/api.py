@@ -35,6 +35,29 @@ def _get_driver_account_for_user(user):
     return records[0] if records else None
 
 
+def _get_assigned_job_for_driver(job_id, driver_id):
+    job = frappe.get_doc("Track Delivery Job", job_id)
+    if job.assigned_driver != driver_id:
+        frappe.throw("Not permitted.")
+    return job
+
+
+def _enforce_single_en_route_job(driver_id, current_job_name, next_status):
+    if next_status != "En Route":
+        return
+
+    existing = frappe.db.exists(
+        "Track Delivery Job",
+        {
+            "assigned_driver": driver_id,
+            "status": "En Route",
+            "name": ["!=", current_job_name],
+        },
+    )
+    if existing:
+        frappe.throw("You already have an En Route job. Complete it before starting another.")
+
+
 def _validate_status_transition(current_status, new_status):
     if current_status == new_status:
         return
@@ -53,6 +76,41 @@ def _validate_status_transition(current_status, new_status):
         frappe.throw(
             f"Invalid status transition from '{current_status or 'None'}' to '{new_status}'."
         )
+
+
+def _set_status_timestamps(job, status, status_time):
+    job.last_status_at = status_time
+    if status == "Assigned" and not job.assigned_at:
+        job.assigned_at = status_time
+    if status == "Picked Up":
+        job.picked_up_at = status_time
+    if status == "Delivered":
+        job.delivered_at = status_time
+
+
+def _create_status_log(job_name, status, changed_by, changed_at, lat=None, lng=None, note=None):
+    log = frappe.new_doc("Track Status Log")
+    log.delivery_job = job_name
+    log.status = status
+    log.changed_by = changed_by
+    log.changed_at = changed_at
+    log.lat = lat
+    log.lng = lng
+    log.note = note
+    log.insert(ignore_permissions=True)
+
+
+def _update_job_status_and_log(job, status, changed_by, lat=None, lng=None, note=None):
+    _validate_status_transition(job.status, status)
+    _enforce_single_en_route_job(job.assigned_driver, job.name, status)
+
+    status_time = now_datetime()
+    job.status = status
+    _set_status_timestamps(job, status, status_time)
+    job.save(ignore_permissions=True)
+    _create_status_log(job.name, status, changed_by, status_time, lat=lat, lng=lng, note=note)
+
+    return status_time
 
 
 def _data_url_to_attachment(data_url, filename, attached_to_doctype=None, attached_to_name=None):
@@ -293,50 +351,14 @@ def update_job_status(job_id, status, lat=None, lng=None, note=None):
     if not account:
         frappe.throw("Driver account not found.")
 
-    job = frappe.get_doc("Track Delivery Job", job_id)
-    if job.assigned_driver != account["driver"]:
-        frappe.throw("Not permitted.")
-
-    _validate_status_transition(job.status, status)
-
-    status_time = now_datetime()
-    job.status = status
-    job.last_status_at = status_time
-    if status == "Assigned" and not job.assigned_at:
-        job.assigned_at = status_time
-    if status == "Picked Up":
-        job.picked_up_at = status_time
-    if status == "Delivered":
-        job.delivered_at = status_time
-    job.save(ignore_permissions=True)
-
-    log = frappe.new_doc("Track Status Log")
-    log.delivery_job = job.name
-    log.status = status
-    log.changed_by = user
-    log.changed_at = status_time
-    log.lat = lat
-    log.lng = lng
-    log.note = note
-    log.insert(ignore_permissions=True)
+    job = _get_assigned_job_for_driver(job_id, account["driver"])
+    _update_job_status_and_log(job, status, user, lat=lat, lng=lng, note=note)
 
     return {"status": job.status}
 
 
 @frappe.whitelist()
-def upload_pod(job_id, pod_type=None, note=None, photo=None, signature=None, lat=None, lng=None):
-    user = frappe.session.user
-    if not user or user == "Guest":
-        frappe.throw("Authentication required.")
-
-    account = _get_driver_account_for_user(user)
-    if not account:
-        frappe.throw("Driver account not found.")
-
-    job = frappe.get_doc("Track Delivery Job", job_id)
-    if job.assigned_driver != account["driver"]:
-        frappe.throw("Not permitted.")
-
+def _create_pod_entry(job, pod_type=None, note=None, photo=None, signature=None, lat=None, lng=None):
     photo_url = _data_url_to_attachment(
         photo,
         f"{job.name}-pod-photo",
@@ -352,7 +374,7 @@ def upload_pod(job_id, pod_type=None, note=None, photo=None, signature=None, lat
 
     pod = frappe.new_doc("Track Proof of Delivery")
     pod.delivery_job = job.name
-    pod.pod_type = pod_type
+    pod.pod_type = pod_type or "Signature"
     pod.recorded_at = now_datetime()
     pod.notes = note
     pod.photo = photo_url
@@ -360,7 +382,58 @@ def upload_pod(job_id, pod_type=None, note=None, photo=None, signature=None, lat
     pod.lat = lat
     pod.lng = lng
     pod.insert(ignore_permissions=True)
+
+    return pod
+
+
+@frappe.whitelist()
+def upload_pod(job_id, pod_type=None, note=None, photo=None, signature=None, lat=None, lng=None):
+    user = frappe.session.user
+    if not user or user == "Guest":
+        frappe.throw("Authentication required.")
+
+    account = _get_driver_account_for_user(user)
+    if not account:
+        frappe.throw("Driver account not found.")
+
+    job = _get_assigned_job_for_driver(job_id, account["driver"])
+    pod = _create_pod_entry(
+        job,
+        pod_type=pod_type,
+        note=note,
+        photo=photo,
+        signature=signature,
+        lat=lat,
+        lng=lng,
+    )
+
     return {"name": pod.name}
+
+
+@frappe.whitelist()
+def complete_delivery(job_id, note=None, photo=None, signature=None, lat=None, lng=None):
+    user = frappe.session.user
+    if not user or user == "Guest":
+        frappe.throw("Authentication required.")
+
+    account = _get_driver_account_for_user(user)
+    if not account:
+        frappe.throw("Driver account not found.")
+
+    job = _get_assigned_job_for_driver(job_id, account["driver"])
+
+    pod = _create_pod_entry(
+        job,
+        pod_type="Signature",
+        note=note,
+        photo=photo,
+        signature=signature,
+        lat=lat,
+        lng=lng,
+    )
+    _update_job_status_and_log(job, "Delivered", user, lat=lat, lng=lng, note=note)
+
+    return {"status": job.status, "pod": pod.name}
 
 
 @frappe.whitelist()

@@ -141,3 +141,38 @@ export const uploadPod = async (jobId, payload = {}) => {
   })
   return data.message
 }
+
+export const completeDelivery = async (jobId, payload = {}) => {
+  const data = await request('/api/method/av_track.api.complete_delivery', {
+    method: 'POST',
+    headers: withCsrf({
+      'Content-Type': 'application/x-www-form-urlencoded',
+    }),
+    body: buildFormBody({
+      job_id: jobId,
+      note: payload.note,
+      photo: payload.photo,
+      signature: payload.signature,
+      lat: payload.lat,
+      lng: payload.lng,
+    }),
+  })
+  return data.message
+}
+
+export const postLocationPing = async (payload = {}) => {
+  const data = await request('/api/method/av_track.api.post_location_ping', {
+    method: 'POST',
+    headers: withCsrf({
+      'Content-Type': 'application/x-www-form-urlencoded',
+    }),
+    body: buildFormBody({
+      lat: payload.lat,
+      lng: payload.lng,
+      accuracy: payload.accuracy,
+      job_id: payload.jobId,
+      device_id: payload.deviceId,
+    }),
+  })
+  return data.message
+}

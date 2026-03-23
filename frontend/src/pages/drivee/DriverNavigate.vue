@@ -123,9 +123,9 @@
 </template>
 
 <script setup>
-import { computed, nextTick, onMounted, ref } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
-import { getDriverDashboard } from '@/utils/auth'
+import { getDriverDashboard, postLocationPing } from '@/utils/auth'
 
 const route = useRoute()
 const mapContainer = ref(null)
@@ -136,6 +136,10 @@ const mapApiKey = ref('')
 
 let mapInstance = null
 let mapMarker = null
+let pingIntervalId = null
+
+const PING_INTERVAL_MS = 30000
+const DEVICE_ID_KEY = 'av-track-device-id'
 
 const etaMinutes = computed(() => {
   if (!currentTask.value) return '8'
@@ -170,6 +174,70 @@ const arrivedRoute = computed(() => ({
     job: currentTask.value?.name || route.query.job || '',
   },
 }))
+
+const getOrCreateDeviceId = () => {
+  try {
+    const existing = localStorage.getItem(DEVICE_ID_KEY)
+    if (existing) return existing
+    const generated = `avt-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`
+    localStorage.setItem(DEVICE_ID_KEY, generated)
+    return generated
+  } catch (error) {
+    return null
+  }
+}
+
+const getCurrentPosition = () =>
+  new Promise((resolve) => {
+    if (!navigator.geolocation) {
+      resolve({ lat: null, lng: null, accuracy: null })
+      return
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        resolve({
+          lat: position.coords.latitude,
+          lng: position.coords.longitude,
+          accuracy: position.coords.accuracy,
+        })
+      },
+      () => resolve({ lat: null, lng: null, accuracy: null }),
+      { enableHighAccuracy: true, timeout: 8000, maximumAge: 15000 }
+    )
+  })
+
+const sendLocationPing = async () => {
+  const jobId = currentTask.value?.name
+  if (!jobId) return
+
+  const position = await getCurrentPosition()
+  if (position.lat == null || position.lng == null) return
+
+  try {
+    await postLocationPing({
+      lat: position.lat,
+      lng: position.lng,
+      accuracy: position.accuracy,
+      jobId,
+      deviceId: getOrCreateDeviceId(),
+    })
+  } catch (error) {
+    // Keep silent; retry on next cycle.
+  }
+}
+
+const startLocationPingLoop = () => {
+  if (pingIntervalId || !currentTask.value?.name) return
+  sendLocationPing()
+  pingIntervalId = window.setInterval(sendLocationPing, PING_INTERVAL_MS)
+}
+
+const stopLocationPingLoop = () => {
+  if (!pingIntervalId) return
+  window.clearInterval(pingIntervalId)
+  pingIntervalId = null
+}
 
 const loadGoogleMapsScript = (key) => {
   if (!key) return Promise.reject(new Error('Missing map key'))
@@ -262,6 +330,11 @@ const loadNavigateData = async () => {
     mapApiKey.value = data.map?.api_key || ''
     await nextTick()
     await initMap()
+    if (currentTask.value?.name) {
+      startLocationPingLoop()
+    } else {
+      stopLocationPingLoop()
+    }
   } catch (error) {
     // Keep graceful fallback background.
   }
@@ -269,5 +342,20 @@ const loadNavigateData = async () => {
 
 onMounted(() => {
   loadNavigateData()
+})
+
+watch(
+  () => currentTask.value?.name,
+  (jobId) => {
+    if (jobId) {
+      startLocationPingLoop()
+    } else {
+      stopLocationPingLoop()
+    }
+  }
+)
+
+onBeforeUnmount(() => {
+  stopLocationPingLoop()
 })
 </script>

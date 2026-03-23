@@ -187,7 +187,7 @@
 <script>
 import SignaturePad from 'signature_pad'
 import InfoDialog from '@/components/InfoDialog.vue'
-import { getDriverDashboard, getJobDetails, updateJobStatus, uploadPod } from '@/utils/auth'
+import { completeDelivery, getDriverDashboard, getJobDetails } from '@/utils/auth'
 
 export default {
   name: 'DriverDeliveryComplete',
@@ -315,18 +315,12 @@ export default {
       this.isSubmitting = true
       try {
         const location = await this.getCurrentLocation()
-        await uploadPod(this.jobId, {
-          podType: 'Signature',
+        await completeDelivery(this.jobId, {
           note: this.notes,
           photo: this.photoDataUrl,
           signature,
           lat: location.lat,
           lng: location.lng,
-        })
-        await updateJobStatus(this.jobId, 'Delivered', {
-          lat: location.lat,
-          lng: location.lng,
-          note: this.notes,
         })
         this.$router.replace('/driver/dashboard')
       } catch (error) {
