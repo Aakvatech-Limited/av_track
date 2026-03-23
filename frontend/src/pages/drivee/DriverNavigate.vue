@@ -17,11 +17,11 @@
                   <path d="M10 20l8-8-8-8" stroke-linecap="round" stroke-linejoin="round" />
                   <path d="M18 12H6" stroke-linecap="round" stroke-linejoin="round" />
                 </svg>
-                <span class="mt-1 text-[10px] font-bold">400 ft</span>
+                <span class="mt-1 text-[10px] font-bold">{{ nextStepDistance }}</span>
               </div>
               <div class="flex flex-col border-l border-white/25 pl-4">
-                <p class="text-xs font-medium text-blue-100">Turn right onto</p>
-                <h2 class="text-lg font-bold leading-tight">Marketplace Blvd</h2>
+                <p class="text-xs font-medium text-blue-100">{{ nextStepPrefix }}</p>
+                <h2 class="text-lg font-bold leading-tight">{{ nextStepTitle }}</h2>
               </div>
             </div>
           </div>
@@ -133,15 +133,27 @@ const hasMap = ref(false)
 const currentTask = ref(null)
 const mapProvider = ref('')
 const mapApiKey = ref('')
+const routeSummary = ref({
+  durationText: '',
+  distanceText: '',
+  stepDistance: '',
+  stepInstruction: '',
+})
 
 let mapInstance = null
 let mapMarker = null
+let directionsRenderer = null
 let pingIntervalId = null
 
 const PING_INTERVAL_MS = 30000
 const DEVICE_ID_KEY = 'av-track-device-id'
 
 const etaMinutes = computed(() => {
+  const durationText = routeSummary.value.durationText
+  if (durationText) {
+    const numeric = String(durationText).match(/\d+/)
+    if (numeric) return numeric[0]
+  }
   if (!currentTask.value) return '8'
   const eta = currentTask.value.eta_label || ''
   const numeric = String(eta).match(/\d+/)
@@ -149,6 +161,7 @@ const etaMinutes = computed(() => {
 })
 
 const distanceLabel = computed(() => {
+  if (routeSummary.value.distanceText) return `(${routeSummary.value.distanceText})`
   if (!currentTask.value) return '(1.2 miles)'
   return currentTask.value.distance_label ? `(${currentTask.value.distance_label})` : '(1.2 miles)'
 })
@@ -167,6 +180,14 @@ const customerName = computed(() => {
   if (!currentTask.value) return 'Customer'
   return currentTask.value.customer_name || 'Customer'
 })
+
+const nextStepDistance = computed(() => routeSummary.value.stepDistance || '400 ft')
+
+const nextStepTitle = computed(() => routeSummary.value.stepInstruction || 'Destination')
+
+const nextStepPrefix = computed(() =>
+  routeSummary.value.stepInstruction ? 'Next step' : 'Continue to'
+)
 
 const arrivedRoute = computed(() => ({
   path: '/driver/complete',
@@ -256,12 +277,36 @@ const loadGoogleMapsScript = (key) => {
   return window.__avTrackGoogleMapsPromise
 }
 
+const stripHtml = (rawText) => {
+  if (!rawText) return ''
+  return rawText.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim()
+}
+
+const resetRouteSummary = () => {
+  routeSummary.value = {
+    durationText: '',
+    distanceText: '',
+    stepDistance: '',
+    stepInstruction: '',
+  }
+}
+
+const clearDirections = () => {
+  if (!directionsRenderer) return
+  directionsRenderer.setMap(null)
+  directionsRenderer = null
+}
+
 const recenterMap = () => {
   if (!mapInstance || !currentTask.value) return
   const lat = currentTask.value.dropoff_lat ?? currentTask.value.pickup_lat
   const lng = currentTask.value.dropoff_lng ?? currentTask.value.pickup_lng
   if (lat == null || lng == null) return
   const center = { lat: Number(lat), lng: Number(lng) }
+  if (directionsRenderer?.getDirections()?.routes?.[0]) {
+    mapInstance.fitBounds(directionsRenderer.getDirections().routes[0].bounds, 40)
+    return
+  }
   mapInstance.setCenter(center)
   mapInstance.setZoom(17)
 }
@@ -283,6 +328,8 @@ const initMap = async () => {
 
   const maps = await loadGoogleMapsScript(mapApiKey.value)
   const center = { lat: Number(lat), lng: Number(lng) }
+  const pickupLat = currentTask.value.pickup_lat
+  const pickupLng = currentTask.value.pickup_lng
 
   if (!mapInstance) {
     mapInstance = new maps.Map(mapContainer.value, {
@@ -295,29 +342,99 @@ const initMap = async () => {
       scrollwheel: true,
       disableDoubleClickZoom: false,
     })
-    maps.event.addListenerOnce(mapInstance, 'idle', () => {
-      mapInstance.setCenter(center)
-      mapInstance.setZoom(17)
-    })
   } else {
     mapInstance.setCenter(center)
-    mapInstance.setZoom(17)
   }
 
-  if (!mapMarker) {
-    mapMarker = new maps.Marker({
-      position: center,
+  if (!directionsRenderer) {
+    directionsRenderer = new maps.DirectionsRenderer({
       map: mapInstance,
+      suppressMarkers: false,
+      preserveViewport: true,
+      polylineOptions: {
+        strokeColor: '#137fec',
+        strokeOpacity: 0.9,
+        strokeWeight: 5,
+      },
     })
+  }
+
+  const canDrawRoute =
+    pickupLat != null &&
+    pickupLng != null &&
+    currentTask.value.dropoff_lat != null &&
+    currentTask.value.dropoff_lng != null
+
+  if (canDrawRoute) {
+    const directionsService = new maps.DirectionsService()
+    try {
+      const response = await directionsService.route({
+        origin: { lat: Number(pickupLat), lng: Number(pickupLng) },
+        destination: {
+          lat: Number(currentTask.value.dropoff_lat),
+          lng: Number(currentTask.value.dropoff_lng),
+        },
+        travelMode: maps.TravelMode.DRIVING,
+      })
+      directionsRenderer.setDirections(response)
+
+      const route = response.routes?.[0]
+      const leg = route?.legs?.[0]
+      const step = leg?.steps?.[0]
+
+      routeSummary.value = {
+        durationText: leg?.duration?.text || '',
+        distanceText: leg?.distance?.text || '',
+        stepDistance: step?.distance?.text || '',
+        stepInstruction: stripHtml(step?.instructions || ''),
+      }
+
+      if (route?.bounds) {
+        mapInstance.fitBounds(route.bounds, 40)
+      }
+
+      if (mapMarker) {
+        mapMarker.setMap(null)
+        mapMarker = null
+      }
+    } catch (error) {
+      resetRouteSummary()
+      clearDirections()
+      if (!mapMarker) {
+        mapMarker = new maps.Marker({
+          position: center,
+          map: mapInstance,
+        })
+      } else {
+        mapMarker.setPosition(center)
+      }
+      mapInstance.setCenter(center)
+      mapInstance.setZoom(17)
+    }
   } else {
-    mapMarker.setPosition(center)
+    resetRouteSummary()
+    clearDirections()
+    if (!mapMarker) {
+      mapMarker = new maps.Marker({
+        position: center,
+        map: mapInstance,
+      })
+    } else {
+      mapMarker.setPosition(center)
+    }
+    mapInstance.setCenter(center)
+    mapInstance.setZoom(17)
   }
 
   hasMap.value = true
   maps.event.trigger(mapInstance, 'resize')
   setTimeout(() => {
-    mapInstance.setCenter(center)
-    mapInstance.setZoom(17)
+    if (directionsRenderer?.getDirections()?.routes?.[0]?.bounds) {
+      mapInstance.fitBounds(directionsRenderer.getDirections().routes[0].bounds, 40)
+    } else {
+      mapInstance.setCenter(center)
+      mapInstance.setZoom(17)
+    }
   }, 150)
 }
 
