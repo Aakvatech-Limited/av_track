@@ -1,5 +1,11 @@
 <template>
   <div class="min-h-[100dvh] bg-white text-slate-900">
+    <InfoDialog
+      v-model="dialogVisible"
+      :title="dialogTitle"
+      :message="dialogMessage"
+      :variant="dialogVariant"
+    />
     <div class="min-h-[100dvh] w-full px-6 py-8 lg:px-12 lg:py-12">
       <div class="mx-0 w-full max-w-none pb-24 lg:w-[420px]">
         <!-- Header -->
@@ -145,7 +151,7 @@
             </div>
             <div class="flex-1">
               <p class="text-sm font-bold">{{ stop.address }}</p>
-              <p class="text-slate-500 text-xs">{{ stop.distance }} miles • {{ stop.type }}</p>
+              <p class="text-slate-500 text-xs">{{ formatStopMeta(stop) }}</p>
             </div>
             <svg class="h-5 w-5 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M4 6h16M4 12h16M4 18h16" />
@@ -265,14 +271,28 @@
           </div>
         </div>
         <div class="absolute bottom-0 left-0 right-0 flex flex-col gap-3 border-t border-slate-100 bg-white/95 px-6 py-5">
-          <button class="h-14 rounded-xl bg-blue-600 text-base font-bold text-white shadow-lg shadow-blue-600/20">
-            Set as Current Task
+          <button
+            type="button"
+            :disabled="isSettingCurrentTask"
+            class="h-14 rounded-xl bg-blue-600 text-base font-bold text-white shadow-lg shadow-blue-600/20 disabled:cursor-not-allowed disabled:opacity-60"
+            @click="setAsCurrentTask"
+          >
+            {{ isSettingCurrentTask ? 'Setting...' : 'Set as Current Task' }}
           </button>
           <div class="flex gap-3">
-            <button class="flex-1 rounded-xl border border-slate-200 bg-slate-100 py-3 text-sm font-semibold text-slate-700">
+            <button
+              type="button"
+              class="flex-1 rounded-xl border border-slate-200 bg-slate-100 py-3 text-sm font-semibold text-slate-700"
+              @click="showReorderComingSoon"
+            >
               Reorder Route
             </button>
-            <button class="flex h-12 w-12 items-center justify-center rounded-xl border border-slate-200 bg-slate-100 text-slate-700">
+            <button
+              type="button"
+              :disabled="!selectedStop?.customer_phone"
+              class="flex h-12 w-12 items-center justify-center rounded-xl border border-slate-200 bg-slate-100 text-slate-700 disabled:cursor-not-allowed disabled:opacity-40"
+              @click="callSelectedCustomer"
+            >
               <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" stroke-linecap="round" stroke-linejoin="round" />
               </svg>
@@ -288,6 +308,7 @@
 <script setup>
 import { ref, computed, watch, onMounted, nextTick } from 'vue'
 import DriverBottomNav from '@/components/DriverBottomNav.vue'
+import InfoDialog from '@/components/InfoDialog.vue'
 
 const isActive = ref(false)
 const driverName = ref('')
@@ -315,6 +336,18 @@ let mapMarker = null
 const currentTask = ref(null)
 const showStopSheet = ref(false)
 const selectedStop = ref(null)
+const isSettingCurrentTask = ref(false)
+const dialogVisible = ref(false)
+const dialogTitle = ref('')
+const dialogMessage = ref('')
+const dialogVariant = ref('info')
+
+const showDialog = (title, message, variant = 'info') => {
+  dialogTitle.value = title
+  dialogMessage.value = message
+  dialogVariant.value = variant
+  dialogVisible.value = true
+}
 
 const getInitials = (name) => {
   if (!name) return ''
@@ -341,6 +374,53 @@ const openStopSheet = (stop) => {
 
 const closeStopSheet = () => {
   showStopSheet.value = false
+}
+
+const formatStopMeta = (stop) => {
+  const parts = []
+  if (stop.distance) {
+    parts.push(`${stop.distance} miles`)
+  }
+  parts.push(stop.type || 'Picked Up')
+  return parts.join(' • ')
+}
+
+const setAsCurrentTask = async () => {
+  if (!selectedStop.value?.jobName) return
+
+  if (currentTask.value?.name && currentTask.value.name !== selectedStop.value.jobName) {
+    showDialog(
+      'Current Task Active',
+      'Complete or fail the current En Route task before switching.',
+      'warning'
+    )
+    return
+  }
+
+  isSettingCurrentTask.value = true
+  try {
+    const { updateJobStatus } = await import('@/utils/auth')
+    await updateJobStatus(selectedStop.value.jobName, 'En Route')
+    closeStopSheet()
+    await loadDriverDashboard()
+  } catch (error) {
+    showDialog('Could Not Update Task', 'Failed to set this stop as current task.', 'error')
+  } finally {
+    isSettingCurrentTask.value = false
+  }
+}
+
+const showReorderComingSoon = () => {
+  showDialog('Coming Soon', 'Route reordering is not available yet.', 'info')
+}
+
+const callSelectedCustomer = () => {
+  const phone = (selectedStop.value?.customer_phone || '').trim()
+  if (!phone) {
+    showDialog('No Phone Number', 'This stop does not have a customer phone number.', 'warning')
+    return
+  }
+  window.location.href = `tel:${phone.replace(/\s+/g, '')}`
 }
 
 const loadDriverDashboard = async () => {
@@ -370,11 +450,13 @@ const loadDriverDashboard = async () => {
 
     upcomingStops.value = (data.upcoming_stops || []).map((stop, index) => ({
       id: index + 1,
+      jobName: stop.name,
       address: stop.dropoff_address || stop.pickup_address || 'Stop',
-      distance: '',
-      type: 'Picked Up',
+      distance: stop.distance_label || '',
+      type: stop.status || 'Picked Up',
       pickup_address: stop.pickup_address,
       customer_name: stop.customer_name,
+      customer_phone: stop.customer_phone,
     }))
   } catch (error) {
     // keep defaults

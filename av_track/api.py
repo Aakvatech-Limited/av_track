@@ -191,6 +191,8 @@ def get_driver_dashboard():
             "dropoff_address",
             "pickup_address",
             "status",
+            "customer_name",
+            "customer_phone",
             "last_status_at",
         ],
         order_by="modified asc",
