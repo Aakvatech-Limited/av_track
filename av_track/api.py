@@ -5,7 +5,7 @@ import binascii
 
 import frappe
 from frappe.utils.file_manager import save_file
-from frappe.utils import now_datetime, get_datetime, nowdate
+from frappe.utils import get_datetime, now_datetime, nowdate
 
 
 @frappe.whitelist()
@@ -297,21 +297,22 @@ def update_job_status(job_id, status, lat=None, lng=None, note=None):
 
     _validate_status_transition(job.status, status)
 
+    status_time = now_datetime()
     job.status = status
-    job.last_status_at = now_datetime()
+    job.last_status_at = status_time
     if status == "Assigned" and not job.assigned_at:
-        job.assigned_at = now_datetime()
+        job.assigned_at = status_time
     if status == "Picked Up":
-        job.picked_up_at = now_datetime()
+        job.picked_up_at = status_time
     if status == "Delivered":
-        job.delivered_at = now_datetime()
+        job.delivered_at = status_time
     job.save(ignore_permissions=True)
 
     log = frappe.new_doc("Track Status Log")
     log.delivery_job = job.name
     log.status = status
     log.changed_by = user
-    log.changed_at = now_datetime()
+    log.changed_at = status_time
     log.lat = lat
     log.lng = lng
     log.note = note
@@ -373,7 +374,8 @@ def post_location_ping(lat, lng, accuracy=None, job_id=None, device_id=None):
     ping = frappe.new_doc("Track Location Ping")
     ping.driver_account = account["name"]
     ping.delivery_job = job_id
-    ping.pinged_at = now_datetime()
+    ping_time = now_datetime()
+    ping.pinged_at = ping_time
     ping.lat = lat
     ping.lng = lng
     ping.accuracy = accuracy
@@ -386,7 +388,7 @@ def post_location_ping(lat, lng, accuracy=None, job_id=None, device_id=None):
         {
             "last_lat": lat,
             "last_lng": lng,
-            "last_ping_at": now_datetime(),
+            "last_ping_at": ping_time,
         },
     )
 
