@@ -2,10 +2,14 @@
   <div class="min-h-[100dvh] bg-slate-100 text-slate-900">
     <div class="h-[100dvh] w-full px-6 py-6 lg:px-12 lg:py-10">
       <div class="relative mx-0 h-full w-full max-w-none overflow-hidden rounded-[32px] bg-white shadow-[0_24px_60px_rgba(15,23,42,0.16)] lg:w-[420px]">
-        <div class="absolute inset-0 bg-[url('https://lh3.googleusercontent.com/aida-public/AB6AXuCwFoQ7JdpWvqnf2-O2IXPqDedCmkaGS2d1n7D2f6w4agoek55TkZBXL8BN6CZNwCnql7S8qNQ0lLNtswDYxHO7rZFZRdEnJZIpDM_8wMK8OcfdZQ0bZdQiy_E-Ek5MthV7wfKATQmOF9WlAEvYDMo3RT_99EmxACQi7i11DqX7M2pwZME0jNtaeOq4KDJoNYtW6dpd-zTAf54nh-ElIw1J-u8c9aoz-KokilEI9TM9GTQAbVuXIWvkH8WmRZdZUnj-EG60MYFf0hE1')] bg-cover bg-center"></div>
-        <div class="absolute inset-0 bg-black/10"></div>
+        <div ref="mapContainer" class="absolute inset-0 z-0"></div>
+        <div
+          v-if="!hasMap"
+          class="pointer-events-none absolute inset-0 z-10 bg-gradient-to-br from-slate-200 to-slate-300"
+        ></div>
+        <div class="pointer-events-none absolute inset-0 z-10 bg-black/10"></div>
 
-        <div class="relative z-10 p-4 pt-10">
+        <div class="relative z-20 p-4 pt-10">
           <div class="rounded-2xl border border-white/15 bg-blue-600/95 p-4 text-white shadow-xl backdrop-blur">
             <div class="flex items-center gap-4">
               <div class="flex flex-col items-center">
@@ -23,15 +27,21 @@
           </div>
         </div>
 
-        <div class="absolute right-4 top-1/2 z-10 flex -translate-y-1/2 flex-col gap-3">
-          <button class="flex h-12 w-12 items-center justify-center rounded-full bg-white/90 text-slate-900 shadow-lg backdrop-blur">
+        <div class="absolute right-4 top-1/2 z-20 flex -translate-y-1/2 flex-col gap-3">
+          <button
+            class="flex h-12 w-12 items-center justify-center rounded-full bg-white/90 text-slate-900 shadow-lg backdrop-blur"
+            @click="recenterMap"
+          >
             <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <circle cx="12" cy="12" r="9" />
               <circle cx="12" cy="12" r="2" />
               <path d="M12 2v4M12 18v4M2 12h4M18 12h4" stroke-linecap="round" />
             </svg>
           </button>
-          <button class="flex h-12 w-12 items-center justify-center rounded-full bg-white/90 text-slate-900 shadow-lg backdrop-blur">
+          <button
+            class="flex h-12 w-12 items-center justify-center rounded-full bg-white/90 text-slate-900 shadow-lg backdrop-blur"
+            @click="zoomInMap"
+          >
             <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M12 5v14M5 12h14" stroke-linecap="round" />
             </svg>
@@ -47,9 +57,9 @@
                   <p class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Arriving In</p>
                 </div>
                 <div class="mt-1 flex items-baseline gap-2">
-                  <h3 class="text-3xl font-bold text-slate-900">8</h3>
+                  <h3 class="text-3xl font-bold text-slate-900">{{ etaMinutes }}</h3>
                   <span class="text-lg font-bold text-slate-900">min</span>
-                  <span class="text-sm font-medium text-slate-400">(1.2 miles)</span>
+                  <span class="text-sm font-medium text-slate-400">{{ distanceLabel }}</span>
                 </div>
               </div>
               <div class="rounded-xl bg-slate-100 p-2">
@@ -66,15 +76,15 @@
                   <circle cx="12" cy="10" r="2.5" />
                 </svg>
                 <div>
-                  <p class="text-lg font-bold text-slate-900">123 Delivery Ln, Apt 4B</p>
-                  <p class="text-sm text-slate-500">Westside Neighborhood</p>
+                  <p class="text-lg font-bold text-slate-900">{{ taskAddress }}</p>
+                  <p class="text-sm text-slate-500">{{ taskSubAddress }}</p>
                 </div>
               </div>
               <div class="flex items-center gap-4">
                 <svg class="h-5 w-5 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
                 </svg>
-                <p class="text-base font-semibold text-slate-700">John Doe</p>
+                <p class="text-base font-semibold text-slate-700">{{ customerName }}</p>
               </div>
             </div>
 
@@ -112,8 +122,143 @@
   </div>
 </template>
 
-<script>
-export default {
-  name: 'DriverNavigate',
+<script setup>
+import { computed, nextTick, onMounted, ref } from 'vue'
+import { getDriverDashboard } from '@/utils/auth'
+
+const mapContainer = ref(null)
+const hasMap = ref(false)
+const currentTask = ref(null)
+const mapProvider = ref('')
+const mapApiKey = ref('')
+
+let mapInstance = null
+let mapMarker = null
+
+const etaMinutes = computed(() => {
+  if (!currentTask.value) return '8'
+  const eta = currentTask.value.eta_label || ''
+  const numeric = String(eta).match(/\d+/)
+  return numeric ? numeric[0] : '8'
+})
+
+const distanceLabel = computed(() => {
+  if (!currentTask.value) return '(1.2 miles)'
+  return currentTask.value.distance_label ? `(${currentTask.value.distance_label})` : '(1.2 miles)'
+})
+
+const taskAddress = computed(() => {
+  if (!currentTask.value) return 'Current task address'
+  return currentTask.value.dropoff_address || currentTask.value.pickup_address || 'Current task address'
+})
+
+const taskSubAddress = computed(() => {
+  if (!currentTask.value) return 'Navigation preview'
+  return currentTask.value.pickup_address || 'Navigation preview'
+})
+
+const customerName = computed(() => {
+  if (!currentTask.value) return 'Customer'
+  return currentTask.value.customer_name || 'Customer'
+})
+
+const loadGoogleMapsScript = (key) => {
+  if (!key) return Promise.reject(new Error('Missing map key'))
+  if (window.google?.maps) return Promise.resolve(window.google.maps)
+  if (window.__avTrackGoogleMapsPromise) return window.__avTrackGoogleMapsPromise
+
+  window.__avTrackGoogleMapsPromise = new Promise((resolve, reject) => {
+    const script = document.createElement('script')
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${key}&loading=async`
+    script.async = true
+    script.defer = true
+    script.onload = () => resolve(window.google.maps)
+    script.onerror = () => reject(new Error('Failed to load Google Maps'))
+    document.head.appendChild(script)
+  })
+  return window.__avTrackGoogleMapsPromise
 }
+
+const recenterMap = () => {
+  if (!mapInstance || !currentTask.value) return
+  const lat = currentTask.value.dropoff_lat ?? currentTask.value.pickup_lat
+  const lng = currentTask.value.dropoff_lng ?? currentTask.value.pickup_lng
+  if (lat == null || lng == null) return
+  const center = { lat: Number(lat), lng: Number(lng) }
+  mapInstance.setCenter(center)
+  mapInstance.setZoom(17)
+}
+
+const zoomInMap = () => {
+  if (!mapInstance) return
+  const current = mapInstance.getZoom() || 17
+  mapInstance.setZoom(Math.min(current + 1, 20))
+}
+
+const initMap = async () => {
+  if (!mapContainer.value || !currentTask.value) return
+  if (mapProvider.value !== 'Google Maps') return
+  if (!mapApiKey.value) return
+
+  const lat = currentTask.value.dropoff_lat ?? currentTask.value.pickup_lat
+  const lng = currentTask.value.dropoff_lng ?? currentTask.value.pickup_lng
+  if (lat == null || lng == null) return
+
+  const maps = await loadGoogleMapsScript(mapApiKey.value)
+  const center = { lat: Number(lat), lng: Number(lng) }
+
+  if (!mapInstance) {
+    mapInstance = new maps.Map(mapContainer.value, {
+      center,
+      zoom: 17,
+      mapTypeId: maps.MapTypeId.ROADMAP,
+      disableDefaultUI: true,
+      gestureHandling: 'greedy',
+      draggable: true,
+      scrollwheel: true,
+      disableDoubleClickZoom: false,
+    })
+    maps.event.addListenerOnce(mapInstance, 'idle', () => {
+      mapInstance.setCenter(center)
+      mapInstance.setZoom(17)
+    })
+  } else {
+    mapInstance.setCenter(center)
+    mapInstance.setZoom(17)
+  }
+
+  if (!mapMarker) {
+    mapMarker = new maps.Marker({
+      position: center,
+      map: mapInstance,
+    })
+  } else {
+    mapMarker.setPosition(center)
+  }
+
+  hasMap.value = true
+  maps.event.trigger(mapInstance, 'resize')
+  setTimeout(() => {
+    mapInstance.setCenter(center)
+    mapInstance.setZoom(17)
+  }, 150)
+}
+
+const loadNavigateData = async () => {
+  try {
+    const data = await getDriverDashboard()
+    if (!data) return
+    currentTask.value = data.current_task || null
+    mapProvider.value = data.map?.provider || ''
+    mapApiKey.value = data.map?.api_key || ''
+    await nextTick()
+    await initMap()
+  } catch (error) {
+    // Keep graceful fallback background.
+  }
+}
+
+onMounted(() => {
+  loadNavigateData()
+})
 </script>

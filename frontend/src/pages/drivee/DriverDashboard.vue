@@ -71,8 +71,13 @@
           </span>
         </div>
         <div v-if="currentTask" class="rounded-xl overflow-hidden bg-white border border-slate-200 shadow-[0_18px_45px_rgba(15,23,42,0.1)]">
-          <div class="relative h-44 bg-gradient-to-br from-slate-200 to-slate-300">
-            <div class="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent"></div>
+          <div class="relative h-44">
+            <div
+              ref="mapContainer"
+              class="absolute inset-0 z-0 h-full w-full"
+            ></div>
+            <div class="absolute inset-0 z-10 bg-gradient-to-br from-slate-200 to-slate-300 opacity-20"></div>
+            <div class="absolute inset-0 z-20 bg-gradient-to-t from-black/30 to-transparent"></div>
             <div class="absolute bottom-3 left-4 flex items-center gap-2">
               <span class="inline-flex h-6 w-6 items-center justify-center rounded-full bg-white text-blue-500">
                 <svg class="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
@@ -278,7 +283,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, watch, onMounted, nextTick } from 'vue'
 import DriverBottomNav from '@/components/DriverBottomNav.vue'
 
 const isActive = ref(false)
@@ -298,6 +303,11 @@ const remainingDeliveries = computed(() => {
 })
 
 const upcomingStops = ref([])
+const mapProvider = ref('')
+const mapApiKey = ref('')
+const mapContainer = ref(null)
+let mapInstance = null
+let mapMarker = null
 
 const currentTask = ref(null)
 const showStopSheet = ref(false)
@@ -348,6 +358,13 @@ const loadDriverDashboard = async () => {
 
     currentTask.value = data.current_task || null
 
+    const mapSettings = data.map || {}
+    mapProvider.value = mapSettings.provider || ''
+    mapApiKey.value = mapSettings.api_key || ''
+
+    await nextTick()
+    await initMap()
+
     upcomingStops.value = (data.upcoming_stops || []).map((stop, index) => ({
       id: index + 1,
       address: stop.dropoff_address || stop.pickup_address || 'Stop',
@@ -361,7 +378,105 @@ const loadDriverDashboard = async () => {
   }
 }
 
-loadDriverDashboard()
+onMounted(() => {
+  loadDriverDashboard()
+})
+
+watch([currentTask, mapApiKey, mapProvider], () => {
+  initMap()
+})
+
+const loadGoogleMapsScript = (key) => {
+  if (!key) return Promise.reject(new Error('Missing map key'))
+  if (window.google?.maps) return Promise.resolve(window.google.maps)
+  if (window.__avTrackGoogleMapsPromise) return window.__avTrackGoogleMapsPromise
+
+  window.__avTrackGoogleMapsPromise = new Promise((resolve, reject) => {
+    const script = document.createElement('script')
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${key}&loading=async&libraries=marker`
+    script.async = true
+    script.defer = true
+    script.onload = () => resolve(window.google.maps)
+    script.onerror = () => reject(new Error('Failed to load Google Maps'))
+    document.head.appendChild(script)
+  })
+
+  return window.__avTrackGoogleMapsPromise
+}
+
+const initMap = async () => {
+  if (!mapContainer.value || !currentTask.value) return
+  if (mapProvider.value !== 'Google Maps') return
+  if (!mapApiKey.value) return
+
+  const container = mapContainer.value
+  if (!container.clientWidth || !container.clientHeight) {
+    setTimeout(() => initMap(), 150)
+    return
+  }
+
+  const dropLat = currentTask.value.dropoff_lat
+  const dropLng = currentTask.value.dropoff_lng
+  const pickLat = currentTask.value.pickup_lat
+  const pickLng = currentTask.value.pickup_lng
+
+  const lat = dropLat ?? pickLat
+  const lng = dropLng ?? pickLng
+  if (lat == null || lng == null) return
+
+  const maps = await loadGoogleMapsScript(mapApiKey.value)
+  const center = { lat: Number(lat), lng: Number(lng) }
+
+  if (!mapInstance) {
+    mapInstance = new maps.Map(mapContainer.value, {
+      center,
+      zoom: 17,
+      mapTypeId: 'roadmap',
+      disableDefaultUI: true,
+      gestureHandling: 'greedy',
+    })
+  } else {
+    mapInstance.setCenter(center)
+  }
+
+  if (!mapMarker) {
+    mapMarker = new maps.Marker({
+      position: center,
+      map: mapInstance,
+    })
+  } else {
+    mapMarker.setPosition(center)
+  }
+
+  if (dropLat != null && dropLng != null && pickLat != null && pickLng != null) {
+    const bounds = new maps.LatLngBounds()
+    bounds.extend({ lat: Number(dropLat), lng: Number(dropLng) })
+    bounds.extend({ lat: Number(pickLat), lng: Number(pickLng) })
+    const latDiff = Math.abs(Number(dropLat) - Number(pickLat))
+    const lngDiff = Math.abs(Number(dropLng) - Number(pickLng))
+    const isClose = latDiff < 0.01 && lngDiff < 0.01
+    if (isClose) {
+      mapInstance.setCenter(center)
+      mapInstance.setZoom(17)
+    } else {
+      mapInstance.fitBounds(bounds, 24)
+      maps.event.addListenerOnce(mapInstance, 'bounds_changed', () => {
+        const currentZoom = mapInstance.getZoom()
+        if (currentZoom && currentZoom > 16) {
+          mapInstance.setZoom(16)
+        }
+      })
+    }
+  } else {
+    mapInstance.setZoom(17)
+  }
+
+  maps.event.trigger(mapInstance, 'resize')
+  setTimeout(() => {
+    mapInstance.setCenter(center)
+    mapInstance.setZoom(mapInstance.getZoom() || 17)
+  }, 120)
+}
 </script>
 
 <style scoped>

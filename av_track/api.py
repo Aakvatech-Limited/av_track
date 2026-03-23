@@ -138,8 +138,16 @@ def get_driver_dashboard():
         ignore_permissions=True,
     )
 
+    settings = frappe.get_single("Track Settings")
+    map_provider = settings.map_provider
+    map_api_key = settings.get_password("map_api_key") if settings else None
+
     return {
         "profile": profile,
+        "map": {
+            "provider": map_provider,
+            "api_key": map_api_key,
+        },
         "progress": {
             "assigned_total": assigned_total,
             "delivered_total": delivered_total,
