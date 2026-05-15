@@ -17,13 +17,13 @@ def _should_create_for_doctype(source_doctype):
 
 
 def _get_doc_warehouse(doc):
-    warehouse = doc.set_warehouse
+    warehouse = doc.get("set_warehouse")
     if warehouse:
         return warehouse
 
-    items = doc.items or []
+    items = doc.get("items") or []
     for item in items:
-        item_warehouse = item.warehouse
+        item_warehouse = item.get("warehouse")
         if item_warehouse:
             return item_warehouse
 
@@ -65,12 +65,21 @@ def create_from_source(doc, method=None):
         return
 
     job = frappe.new_doc("Track Delivery Job")
-    job.company = doc.company
+    job.company = doc.get("company")
     job.source_doctype = doc.doctype
     job.source_docname = doc.name
-    job.customer_name = doc.customer_name or doc.customer
-    job.customer_phone = doc.contact_mobile or doc.mobile_no
-    job.notes = doc.remarks
+    job.customer_name = doc.get("customer_name") or doc.get("customer")
+    job.customer_phone = (
+        doc.get("contact_mobile")
+        or doc.get("mobile_no")
+        or doc.get("contact_phone")
+        or doc.get("phone")
+    )
+
+    if not job.customer_phone and doc.get("customer"):
+        job.customer_phone = frappe.db.get_value("Customer", doc.get("customer"), "mobile_no")
+
+    job.notes = doc.get("remarks")
 
     warehouse = _get_doc_warehouse(doc)
     pickup_lat, pickup_lng = _get_warehouse_coords(warehouse)
