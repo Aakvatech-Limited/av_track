@@ -18,46 +18,33 @@ av_track.setup_search_button = function(frm, lat_field, lng_field) {
             primary_action: function(values) {
                 let address = values.search_address;
                 
-                frappe.db.get_single_value('Track Settings', 'map_api_key').then(api_key => {
-                    if (!api_key) {
-                        frappe.msgprint(__("Google Maps API Key not configured in Track Settings."));
-                        d.hide();
-                        return;
+                frappe.call({
+                    method: 'av_track.api.geocode_address',
+                    args: {
+                        address: address
+                    },
+                    callback: function(r) {
+                        if (r.message) {
+                            let lat = r.message.lat;
+                            let lon = r.message.lng;
+                            
+                            frm.set_value(lat_field, lat);
+                            frm.set_value(lng_field, lon);
+                            
+                            let geojson = {
+                                "type": "FeatureCollection",
+                                "features": [{
+                                    "type": "Feature",
+                                    "properties": {},
+                                    "geometry": { "type": "Point", "coordinates": [lon, lat] }
+                                }]
+                            };
+                            frm.set_value('track_geolocation', JSON.stringify(geojson));
+                            
+                            frappe.show_alert({message: __("Location found & updated!"), indicator: "green"});
+                            d.hide();
+                        }
                     }
-
-                    let url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=${api_key}`;
-                    
-                    fetch(url)
-                        .then(res => res.json())
-                        .then(data => {
-                            if (data.status === "OK" && data.results.length > 0) {
-                                let location = data.results[0].geometry.location;
-                                let lat = location.lat;
-                                let lon = location.lng;
-                                
-                                frm.set_value(lat_field, lat);
-                                frm.set_value(lng_field, lon);
-                                
-                                let geojson = {
-                                    "type": "FeatureCollection",
-                                    "features": [{
-                                        "type": "Feature",
-                                        "properties": {},
-                                        "geometry": { "type": "Point", "coordinates": [lon, lat] }
-                                    }]
-                                };
-                                frm.set_value('track_geolocation', JSON.stringify(geojson));
-                                
-                                frappe.show_alert({message: __("Location found & updated!"), indicator: "green"});
-                                d.hide();
-                            } else {
-                                frappe.msgprint(__("Location not found by Google Maps. Try a different address."));
-                            }
-                        })
-                        .catch(err => {
-                            console.error(err);
-                            frappe.msgprint(__("Error communicating with Google Maps."));
-                        });
                 });
             }
         });

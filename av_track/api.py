@@ -501,3 +501,25 @@ def get_tracking_by_token(token):
         },
         "logs": logs,
     }
+
+import requests
+
+@frappe.whitelist()
+def geocode_address(address):
+    api_key = frappe.get_doc("Track Settings").get_password("map_api_key")
+    if not api_key:
+        frappe.throw("Google Maps API Key is not configured in Track Settings.")
+    
+    url = "https://maps.googleapis.com/maps/api/geocode/json"
+    try:
+        response = requests.get(url, params={"address": address, "key": api_key})
+        response.raise_for_status()
+        data = response.json()
+        if data.get("status") == "OK" and data.get("results"):
+            location = data["results"][0]["geometry"]["location"]
+            return {"lat": location["lat"], "lng": location["lng"]}
+        else:
+            frappe.throw("Location not found by Google Maps.")
+    except Exception as e:
+        frappe.log_error(title="Google Maps Geocoding Error", message=frappe.get_traceback())
+        frappe.throw("Error communicating with Google Maps.")
