@@ -24,25 +24,52 @@ av_track.setup_search_button = function(frm, lat_field, lng_field) {
                         address: address
                     },
                     callback: function(r) {
-                        if (r.message) {
-                            let lat = r.message.lat;
-                            let lon = r.message.lng;
+                        if (r.message && r.message.length > 0) {
+                            d.hide(); // Hide the search dialog
                             
-                            frm.set_value(lat_field, lat);
-                            frm.set_value(lng_field, lon);
+                            // Map the options for the dropdown
+                            let options = r.message.map(res => res.formatted_address);
                             
-                            let geojson = {
-                                "type": "FeatureCollection",
-                                "features": [{
-                                    "type": "Feature",
-                                    "properties": {},
-                                    "geometry": { "type": "Point", "coordinates": [lon, lat] }
-                                }]
-                            };
-                            frm.set_value('track_geolocation', JSON.stringify(geojson));
-                            
-                            frappe.show_alert({message: __("Location found & updated!"), indicator: "green"});
-                            d.hide();
+                            let select_dialog = new frappe.ui.Dialog({
+                                title: __('Select Exact Location'),
+                                fields: [
+                                    {
+                                        label: __('Multiple locations found. Please select one:'),
+                                        fieldname: 'selected_location',
+                                        fieldtype: 'Select',
+                                        options: options,
+                                        reqd: 1
+                                    }
+                                ],
+                                primary_action_label: __('Drop Pin'),
+                                primary_action: function(vals) {
+                                    // Find the selected result object
+                                    let match = r.message.find(res => res.formatted_address === vals.selected_location);
+                                    if (match) {
+                                        let lat = match.lat;
+                                        let lon = match.lng;
+                                        
+                                        frm.set_value(lat_field, lat);
+                                        frm.set_value(lng_field, lon);
+                                        
+                                        let geojson = {
+                                            "type": "FeatureCollection",
+                                            "features": [{
+                                                "type": "Feature",
+                                                "properties": {},
+                                                "geometry": { "type": "Point", "coordinates": [lon, lat] }
+                                            }]
+                                        };
+                                        frm.set_value('track_geolocation', JSON.stringify(geojson));
+                                        
+                                        frappe.show_alert({message: __("Location found & updated!"), indicator: "green"});
+                                    }
+                                    select_dialog.hide();
+                                }
+                            });
+                            select_dialog.show();
+                        } else {
+                            frappe.msgprint(__("No locations found."));
                         }
                     }
                 });

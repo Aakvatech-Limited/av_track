@@ -516,8 +516,15 @@ def geocode_address(address):
         response.raise_for_status()
         data = response.json()
         if data.get("status") == "OK" and data.get("results"):
-            location = data["results"][0]["geometry"]["location"]
-            return {"lat": location["lat"], "lng": location["lng"]}
+            results = []
+            for res in data["results"]:
+                loc = res["geometry"]["location"]
+                results.append({
+                    "formatted_address": res.get("formatted_address"),
+                    "lat": loc["lat"],
+                    "lng": loc["lng"]
+                })
+            return results
         else:
             error_status = data.get("status", "Unknown Error")
             error_msg = data.get("error_message", "")
