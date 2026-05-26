@@ -13,6 +13,7 @@ custom_fields = {
             "fieldname": "track_geolocation",
             "fieldtype": "Geolocation",
             "label": "Location Map",
+            "read_only": 1,
             "insert_after": "track_location_section",
         },
         {
@@ -43,6 +44,7 @@ custom_fields = {
             "fieldname": "track_geolocation",
             "fieldtype": "Geolocation",
             "label": "Location Map",
+            "read_only": 1,
             "insert_after": "track_location_section",
         },
         {
@@ -73,6 +75,7 @@ custom_fields = {
             "fieldname": "track_geolocation",
             "fieldtype": "Geolocation",
             "label": "Location Map",
+            "read_only": 1,
             "insert_after": "track_location_section",
         },
         {
@@ -103,6 +106,7 @@ custom_fields = {
             "fieldname": "track_geolocation",
             "fieldtype": "Geolocation",
             "label": "Location Map",
+            "read_only": 1,
             "insert_after": "track_location_section",
         },
         {
