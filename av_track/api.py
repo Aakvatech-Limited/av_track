@@ -519,7 +519,9 @@ def geocode_address(address):
             location = data["results"][0]["geometry"]["location"]
             return {"lat": location["lat"], "lng": location["lng"]}
         else:
-            frappe.throw("Location not found by Google Maps.")
+            error_status = data.get("status", "Unknown Error")
+            error_msg = data.get("error_message", "")
+            frappe.throw(f"Google Maps API failed with status: {error_status}. {error_msg}")
     except Exception as e:
         frappe.log_error(title="Google Maps Geocoding Error", message=frappe.get_traceback())
         frappe.throw("Error communicating with Google Maps.")
