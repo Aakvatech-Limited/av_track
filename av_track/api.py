@@ -549,6 +549,22 @@ def _get_warehouse_coords(warehouse):
         return coords[0], coords[1]
     return None, None
 
+def _get_supplier_coords(supplier):
+    """Return (lat, lng) from custom track fields on Supplier."""
+    if not supplier:
+        return None, None
+    try:
+        coords = frappe.db.get_value(
+            "Supplier",
+            supplier,
+            ["track_pickup_lat", "track_pickup_lng"],
+        )
+        if coords:
+            return coords[0], coords[1]
+    except Exception:
+        pass
+    return None, None
+
 
 @frappe.whitelist()
 def create_delivery_job(
