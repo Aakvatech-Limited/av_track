@@ -504,6 +504,186 @@ def get_tracking_by_token(token):
 
 import requests
 
+
+def _get_warehouse_address(warehouse):
+    """Return a human-readable address string for a warehouse."""
+    if not warehouse:
+        return ""
+    wh = frappe.db.get_value(
+        "Warehouse",
+        warehouse,
+        ["warehouse_name", "address_line_1", "city"],
+        as_dict=True,
+    )
+    if not wh:
+        return warehouse
+    parts = [wh.get("warehouse_name") or warehouse]
+    if wh.get("address_line_1"):
+        parts.append(wh.get("address_line_1"))
+    if wh.get("city"):
+        parts.append(wh.get("city"))
+    return ", ".join(p for p in parts if p)
+
+
+def _get_warehouse_coords(warehouse):
+    """Return (lat, lng) from custom track fields on Warehouse."""
+    if not warehouse:
+        return None, None
+    coords = frappe.db.get_value(
+        "Warehouse",
+        warehouse,
+        ["track_pickup_lat", "track_pickup_lng"],
+    )
+    if coords:
+        return coords[0], coords[1]
+    return None, None
+
+
+@frappe.whitelist()
+def create_delivery_job(
+    source_doctype,
+    source_docname,
+    company=None,
+    pickup_address=None,
+    pickup_lat=None,
+    pickup_lng=None,
+    dropoff_address=None,
+    dropoff_lat=None,
+    dropoff_lng=None,
+    customer_name=None,
+    customer_phone=None,
+    notes=None,
+):
+    """
+    Generic API to create a Track Delivery Job from any source document.
+    Called by amex (or any other app) — av_track stays decoupled.
+
+    Returns the name of the created Track Delivery Job, or None if one already
+    exists for this source document.
+    """
+    if not frappe.db.exists("DocType", "Track Delivery Job"):
+        return None
+
+    existing = frappe.db.exists(
+        "Track Delivery Job",
+        {"source_doctype": source_doctype, "source_docname": source_docname},
+    )
+    if existing:
+        return existing
+
+    job = frappe.new_doc("Track Delivery Job")
+    job.company = company
+    job.source_doctype = source_doctype
+    job.source_docname = source_docname
+    job.pickup_address = pickup_address or ""
+    job.pickup_lat = pickup_lat
+    job.pickup_lng = pickup_lng
+    job.dropoff_address = dropoff_address or ""
+    job.dropoff_lat = dropoff_lat
+    job.dropoff_lng = dropoff_lng
+    job.customer_name = customer_name or ""
+    job.customer_phone = customer_phone or ""
+    job.notes = notes or ""
+    job.status = "Assigned"
+    job.insert(ignore_permissions=True)
+
+    _create_status_log(
+        job.name,
+        "Assigned",
+        frappe.session.user,
+        now_datetime(),
+    )
+
+    return job.name
+
+
+@frappe.whitelist()
+def complete_delivery_for_source(source_doctype, source_docname, note=None, lat=None, lng=None):
+    """
+    Mark the Track Delivery Job for a given source document as Delivered.
+    Called by amex when IBT Receipt or Purchase Receipt is submitted.
+
+    Returns the job name if completed, None if no matching active job found.
+    """
+    if not frappe.db.exists("DocType", "Track Delivery Job"):
+        return None
+
+    jobs = frappe.get_all(
+        "Track Delivery Job",
+        filters={
+            "source_doctype": source_doctype,
+            "source_docname": source_docname,
+            "status": ["not in", ["Delivered", "Failed"]],
+        },
+        pluck="name",
+        limit=1,
+        ignore_permissions=True,
+    )
+    if not jobs:
+        return None
+
+    job = frappe.get_doc("Track Delivery Job", jobs[0])
+
+    # Walk through any missing intermediate statuses so the transition machine
+    # accepts the jump straight to Delivered.
+    current = job.status or ""
+    walk_order = ["Assigned", "Picked Up", "En Route"]
+    user = frappe.session.user
+    now = now_datetime()
+
+    for step in walk_order:
+        if current == "En Route":
+            break
+        if current in ("", None, "Assigned"):
+            _create_status_log(job.name, "Picked Up", user, now, note="Auto-advanced by system")
+            frappe.db.set_value("Track Delivery Job", job.name, {
+                "status": "Picked Up",
+                "picked_up_at": now,
+                "last_status_at": now,
+            })
+            current = "Picked Up"
+        elif current == "Picked Up":
+            _create_status_log(job.name, "En Route", user, now, note="Auto-advanced by system")
+            frappe.db.set_value("Track Delivery Job", job.name, {
+                "status": "En Route",
+                "last_status_at": now,
+            })
+            current = "En Route"
+
+    # Now mark Delivered
+    frappe.db.set_value("Track Delivery Job", job.name, {
+        "status": "Delivered",
+        "delivered_at": now,
+        "last_status_at": now,
+    })
+    _create_status_log(
+        job.name,
+        "Delivered",
+        user,
+        now,
+        lat=lat,
+        lng=lng,
+        note=note or "Auto-completed on source document submission",
+    )
+
+    # Create a minimal PoD record (note-only — photo/signature captured by driver)
+    existing_pod = frappe.db.exists(
+        "Track Proof of Delivery",
+        {"delivery_job": job.name, "pod_type": "Note"},
+    )
+    if not existing_pod:
+        pod = frappe.new_doc("Track Proof of Delivery")
+        pod.delivery_job = job.name
+        pod.pod_type = "Note"
+        pod.recorded_at = now
+        pod.notes = note or "Auto-completed — {0} {1}".format(source_doctype, source_docname)
+        pod.lat = lat
+        pod.lng = lng
+        pod.insert(ignore_permissions=True)
+
+    return job.name
+
+
 @frappe.whitelist()
 def geocode_address(address):
     api_key = frappe.get_doc("Track Settings").get_password("map_api_key")
