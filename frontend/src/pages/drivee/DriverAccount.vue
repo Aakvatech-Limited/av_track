@@ -17,9 +17,9 @@
               </svg>
             </span>
           </div>
-          <h2 class="mt-4 text-2xl font-semibold">Alex Driver</h2>
+          <h2 class="mt-4 text-2xl font-semibold">{{ profile.full_name || 'Driver' }}</h2>
           <p class="mt-2 text-sm text-slate-500">
-            <span class="text-amber-500">★</span> 4.9 · Merchant ID: 5920
+            <span class="text-amber-500">★</span> 4.9 · Driver ID: {{ profile.driver_id || '---' }}
           </p>
         </div>
 
@@ -140,7 +140,8 @@
 
           <button
             type="button"
-            class="w-full rounded-2xl border border-red-200 bg-red-50 py-3 text-sm font-semibold text-red-500"
+            @click="handleLogout"
+            class="w-full rounded-2xl border border-red-200 bg-red-50 py-3 text-sm font-semibold text-red-500 hover:bg-red-100 transition-colors"
           >
             Sign Out
           </button>
@@ -155,13 +156,42 @@
   </div>
 </template>
 
-<script>
+<script setup>
+import { ref, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import DriverBottomNav from '@/components/DriverBottomNav.vue'
+import { getDriverDashboard, logout } from '@/utils/auth'
 
-export default {
-  name: 'DriverAccount',
-  components: {
-    DriverBottomNav,
-  },
+const router = useRouter()
+const profile = ref({
+  full_name: 'Loading...',
+  driver_id: '...',
+})
+
+const loadProfile = async () => {
+  try {
+    const data = await getDriverDashboard()
+    if (data && data.profile) {
+      profile.value = data.profile
+    }
+  } catch (error) {
+    console.error('Failed to load profile', error)
+  }
 }
+
+const handleLogout = async () => {
+  try {
+    await logout()
+    // Redirect to login page
+    router.push('/login')
+  } catch (error) {
+    console.error('Logout failed', error)
+    // Even if server request fails, navigate away
+    router.push('/login')
+  }
+}
+
+onMounted(() => {
+  loadProfile()
+})
 </script>

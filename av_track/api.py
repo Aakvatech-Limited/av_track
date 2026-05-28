@@ -250,7 +250,7 @@ def get_driver_dashboard():
         "Track Delivery Job",
         filters={
             "assigned_driver": driver_id,
-            "status": "Picked Up",
+            "status": ["in", ["Assigned", "Picked Up"]],
         },
         fields=[
             "name",
