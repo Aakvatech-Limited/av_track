@@ -55,7 +55,9 @@ def _enforce_single_en_route_job(driver_id, current_job_name, next_status):
         },
     )
     if existing:
-        frappe.throw("You already have an En Route job. Complete it before starting another.")
+        frappe.throw(
+            "You already have an En Route job. Complete it before starting another."
+        )
 
 
 def _validate_status_transition(current_status, new_status):
@@ -88,7 +90,9 @@ def _set_status_timestamps(job, status, status_time):
         job.delivered_at = status_time
 
 
-def _create_status_log(job_name, status, changed_by, changed_at, lat=None, lng=None, note=None):
+def _create_status_log(
+    job_name, status, changed_by, changed_at, lat=None, lng=None, note=None
+):
     log = frappe.new_doc("Track Status Log")
     log.delivery_job = job_name
     log.status = status
@@ -108,12 +112,16 @@ def _update_job_status_and_log(job, status, changed_by, lat=None, lng=None, note
     job.status = status
     _set_status_timestamps(job, status, status_time)
     job.save(ignore_permissions=True)
-    _create_status_log(job.name, status, changed_by, status_time, lat=lat, lng=lng, note=note)
+    _create_status_log(
+        job.name, status, changed_by, status_time, lat=lat, lng=lng, note=note
+    )
 
     return status_time
 
 
-def _data_url_to_attachment(data_url, filename, attached_to_doctype=None, attached_to_name=None):
+def _data_url_to_attachment(
+    data_url, filename, attached_to_doctype=None, attached_to_name=None
+):
     if not data_url or not isinstance(data_url, str):
         return data_url
     if not data_url.startswith("data:"):
@@ -306,10 +314,6 @@ def set_driver_online(is_online):
     return {"is_online": bool(online_value)}
 
 
-
-
-
-
 @frappe.whitelist()
 def get_job_details(job_id):
     user = frappe.session.user
@@ -358,7 +362,9 @@ def update_job_status(job_id, status, lat=None, lng=None, note=None):
 
 
 @frappe.whitelist()
-def _create_pod_entry(job, pod_type=None, note=None, photo=None, signature=None, lat=None, lng=None):
+def _create_pod_entry(
+    job, pod_type=None, note=None, photo=None, signature=None, lat=None, lng=None
+):
     photo_url = _data_url_to_attachment(
         photo,
         f"{job.name}-pod-photo",
@@ -387,7 +393,9 @@ def _create_pod_entry(job, pod_type=None, note=None, photo=None, signature=None,
 
 
 @frappe.whitelist()
-def upload_pod(job_id, pod_type=None, note=None, photo=None, signature=None, lat=None, lng=None):
+def upload_pod(
+    job_id, pod_type=None, note=None, photo=None, signature=None, lat=None, lng=None
+):
     user = frappe.session.user
     if not user or user == "Guest":
         frappe.throw("Authentication required.")
@@ -411,7 +419,9 @@ def upload_pod(job_id, pod_type=None, note=None, photo=None, signature=None, lat
 
 
 @frappe.whitelist()
-def complete_delivery(job_id, note=None, photo=None, signature=None, lat=None, lng=None):
+def complete_delivery(
+    job_id, note=None, photo=None, signature=None, lat=None, lng=None
+):
     user = frappe.session.user
     if not user or user == "Guest":
         frappe.throw("Authentication required.")
@@ -502,6 +512,7 @@ def get_tracking_by_token(token):
         "logs": logs,
     }
 
+
 import requests
 
 
@@ -553,6 +564,7 @@ def create_delivery_job(
     customer_name=None,
     customer_phone=None,
     notes=None,
+    assigned_driver=None,
 ):
     """
     Generic API to create a Track Delivery Job from any source document.
@@ -584,6 +596,7 @@ def create_delivery_job(
     job.customer_name = customer_name or ""
     job.customer_phone = customer_phone or ""
     job.notes = notes or ""
+    job.assigned_driver = assigned_driver
     job.status = "Assigned"
     job.insert(ignore_permissions=True)
 
@@ -598,7 +611,9 @@ def create_delivery_job(
 
 
 @frappe.whitelist()
-def complete_delivery_for_source(source_doctype, source_docname, note=None, lat=None, lng=None):
+def complete_delivery_for_source(
+    source_doctype, source_docname, note=None, lat=None, lng=None
+):
     """
     Mark the Track Delivery Job for a given source document as Delivered.
     Called by amex when IBT Receipt or Purchase Receipt is submitted.
@@ -635,27 +650,43 @@ def complete_delivery_for_source(source_doctype, source_docname, note=None, lat=
         if current == "En Route":
             break
         if current in ("", None, "Assigned"):
-            _create_status_log(job.name, "Picked Up", user, now, note="Auto-advanced by system")
-            frappe.db.set_value("Track Delivery Job", job.name, {
-                "status": "Picked Up",
-                "picked_up_at": now,
-                "last_status_at": now,
-            })
+            _create_status_log(
+                job.name, "Picked Up", user, now, note="Auto-advanced by system"
+            )
+            frappe.db.set_value(
+                "Track Delivery Job",
+                job.name,
+                {
+                    "status": "Picked Up",
+                    "picked_up_at": now,
+                    "last_status_at": now,
+                },
+            )
             current = "Picked Up"
         elif current == "Picked Up":
-            _create_status_log(job.name, "En Route", user, now, note="Auto-advanced by system")
-            frappe.db.set_value("Track Delivery Job", job.name, {
-                "status": "En Route",
-                "last_status_at": now,
-            })
+            _create_status_log(
+                job.name, "En Route", user, now, note="Auto-advanced by system"
+            )
+            frappe.db.set_value(
+                "Track Delivery Job",
+                job.name,
+                {
+                    "status": "En Route",
+                    "last_status_at": now,
+                },
+            )
             current = "En Route"
 
     # Now mark Delivered
-    frappe.db.set_value("Track Delivery Job", job.name, {
-        "status": "Delivered",
-        "delivered_at": now,
-        "last_status_at": now,
-    })
+    frappe.db.set_value(
+        "Track Delivery Job",
+        job.name,
+        {
+            "status": "Delivered",
+            "delivered_at": now,
+            "last_status_at": now,
+        },
+    )
     _create_status_log(
         job.name,
         "Delivered",
@@ -676,7 +707,9 @@ def complete_delivery_for_source(source_doctype, source_docname, note=None, lat=
         pod.delivery_job = job.name
         pod.pod_type = "Note"
         pod.recorded_at = now
-        pod.notes = note or "Auto-completed — {0} {1}".format(source_doctype, source_docname)
+        pod.notes = note or "Auto-completed — {0} {1}".format(
+            source_doctype, source_docname
+        )
         pod.lat = lat
         pod.lng = lng
         pod.insert(ignore_permissions=True)
@@ -689,7 +722,7 @@ def geocode_address(address):
     api_key = frappe.get_doc("Track Settings").get_password("map_api_key")
     if not api_key:
         frappe.throw("Google Maps API Key is not configured in Track Settings.")
-    
+
     url = "https://maps.googleapis.com/maps/api/geocode/json"
     try:
         response = requests.get(url, params={"address": address, "key": api_key})
@@ -699,16 +732,22 @@ def geocode_address(address):
             results = []
             for res in data["results"]:
                 loc = res["geometry"]["location"]
-                results.append({
-                    "formatted_address": res.get("formatted_address"),
-                    "lat": loc["lat"],
-                    "lng": loc["lng"]
-                })
+                results.append(
+                    {
+                        "formatted_address": res.get("formatted_address"),
+                        "lat": loc["lat"],
+                        "lng": loc["lng"],
+                    }
+                )
             return results
         else:
             error_status = data.get("status", "Unknown Error")
             error_msg = data.get("error_message", "")
-            frappe.throw(f"Google Maps API failed with status: {error_status}. {error_msg}")
+            frappe.throw(
+                f"Google Maps API failed with status: {error_status}. {error_msg}"
+            )
     except Exception as e:
-        frappe.log_error(title="Google Maps Geocoding Error", message=frappe.get_traceback())
+        frappe.log_error(
+            title="Google Maps Geocoding Error", message=frappe.get_traceback()
+        )
         frappe.throw("Error communicating with Google Maps.")
