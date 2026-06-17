@@ -92,7 +92,7 @@
    "fieldtype": "Select",
    "in_list_view": 1,
    "label": "Source DocType",
-   "options": "Sales Order\nPOS Invoice\nDelivery Note\nIBT Request\nPurchase Order"
+   "options": "Sales Order\nPOS Invoice\nDelivery Note\nIBT Request\nPurchase Order\nSales Invoice\nPurchase Invoice\nPurchase Receipt"
   },
   {
    "fieldname": "column_3",

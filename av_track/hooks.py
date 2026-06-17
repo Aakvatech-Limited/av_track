@@ -160,6 +160,18 @@ doc_events = {
 	"Delivery Note": {
 		"on_submit": "av_track.track_job.create_from_source"
 	},
+	"Sales Invoice": {
+		"on_submit": "av_track.track_job.create_from_source"
+	},
+	"Purchase Order": {
+		"on_submit": "av_track.track_job.create_from_source"
+	},
+	"Purchase Invoice": {
+		"on_submit": "av_track.track_job.create_from_source"
+	},
+	"Purchase Receipt": {
+		"on_submit": "av_track.track_job.create_from_source"
+	},
 }
 
 

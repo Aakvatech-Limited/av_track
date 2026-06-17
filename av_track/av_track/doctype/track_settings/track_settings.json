@@ -93,7 +93,7 @@
       "fieldname": "source_doctype",
       "fieldtype": "Select",
       "label": "Source DocType",
-      "options": "Sales Order\nPOS Invoice\nDelivery Note"
+      "options": "Sales Order\nPOS Invoice\nDelivery Note\nSales Invoice\nIBT Request\nPurchase Order\nPurchase Invoice\nPurchase Receipt"
     },
     {
       "fieldname": "tracking_domain",
