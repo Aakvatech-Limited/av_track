@@ -1,6 +1,6 @@
 function add_delivery_job_button(frm) {
     if (frm.doc.docstatus === 1) {
-        frm.add_custom_button(__('Delivery Job'), function() {
+        frm.add_custom_button(__('Track Delivery Job'), function() {
             frappe.call({
                 method: 'frappe.client.get_value',
                 args: {
