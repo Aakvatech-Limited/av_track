@@ -78,6 +78,81 @@ def _get_supplier_coords(supplier):
     return None, None
 
 
+@frappe.whitelist()
+def get_delivery_job_details(source_doctype, source_docname):
+    doc = frappe.get_doc(source_doctype, source_docname)
+    
+    details = {
+        "company": doc.get("company"),
+        "source_doctype": doc.doctype,
+        "source_docname": doc.name,
+        "notes": doc.get("remarks")
+    }
+
+    is_purchase = doc.doctype in ["Purchase Order", "Purchase Invoice", "Purchase Receipt"]
+
+    if is_purchase:
+        details["customer_name"] = doc.get("supplier_name") or doc.get("supplier")
+        details["customer_phone"] = (
+            doc.get("contact_mobile")
+            or doc.get("mobile_no")
+            or doc.get("contact_phone")
+            or doc.get("phone")
+        )
+        if not details["customer_phone"] and doc.get("supplier"):
+            try:
+                details["customer_phone"] = frappe.db.get_value("Supplier", doc.get("supplier"), "mobile_no")
+            except Exception:
+                pass
+                
+        # For purchases, pickup is the Supplier, dropoff is the Warehouse
+        pickup_lat, pickup_lng = _get_supplier_coords(doc.get("supplier"))
+        if pickup_lat is not None and pickup_lng is not None:
+            details["pickup_lat"] = pickup_lat
+            details["pickup_lng"] = pickup_lng
+            
+        warehouse = _get_doc_warehouse(doc)
+        dropoff_lat, dropoff_lng = _get_warehouse_coords(warehouse)
+        if dropoff_lat is not None and dropoff_lng is not None:
+            details["dropoff_lat"] = dropoff_lat
+            details["dropoff_lng"] = dropoff_lng
+        else:
+            company_lat, company_lng = _get_company_coords(details["company"])
+            if company_lat is not None and company_lng is not None:
+                details["dropoff_lat"] = company_lat
+                details["dropoff_lng"] = company_lng
+                
+    else:
+        # Sales process
+        details["customer_name"] = doc.get("customer_name") or doc.get("customer")
+        details["customer_phone"] = (
+            doc.get("contact_mobile")
+            or doc.get("mobile_no")
+            or doc.get("contact_phone")
+            or doc.get("phone")
+        )
+
+        if not details["customer_phone"] and doc.get("customer"):
+            try:
+                details["customer_phone"] = frappe.db.get_value("Customer", doc.get("customer"), "mobile_no")
+            except Exception:
+                pass
+
+        # For sales, pickup is the Warehouse/Company
+        warehouse = _get_doc_warehouse(doc)
+        pickup_lat, pickup_lng = _get_warehouse_coords(warehouse)
+        if pickup_lat is not None and pickup_lng is not None:
+            details["pickup_lat"] = pickup_lat
+            details["pickup_lng"] = pickup_lng
+        else:
+            company_lat, company_lng = _get_company_coords(details["company"])
+            if company_lat is not None and company_lng is not None:
+                details["pickup_lat"] = company_lat
+                details["pickup_lng"] = company_lng
+                
+    return details
+
+
 def create_from_source(doc, method=None):
     if not doc:
         return
@@ -92,71 +167,7 @@ def create_from_source(doc, method=None):
     if existing:
         return
 
+    details = get_delivery_job_details(doc.doctype, doc.name)
     job = frappe.new_doc("Track Delivery Job")
-    job.company = doc.get("company")
-    job.source_doctype = doc.doctype
-    job.source_docname = doc.name
-    job.notes = doc.get("remarks")
-
-    is_purchase = doc.doctype in ["Purchase Order", "Purchase Invoice", "Purchase Receipt"]
-
-    if is_purchase:
-        job.customer_name = doc.get("supplier_name") or doc.get("supplier")
-        job.customer_phone = (
-            doc.get("contact_mobile")
-            or doc.get("mobile_no")
-            or doc.get("contact_phone")
-            or doc.get("phone")
-        )
-        if not job.customer_phone and doc.get("supplier"):
-            try:
-                job.customer_phone = frappe.db.get_value("Supplier", doc.get("supplier"), "mobile_no")
-            except Exception:
-                pass
-                
-        # For purchases, pickup is the Supplier, dropoff is the Warehouse
-        pickup_lat, pickup_lng = _get_supplier_coords(doc.get("supplier"))
-        if pickup_lat is not None and pickup_lng is not None:
-            job.pickup_lat = pickup_lat
-            job.pickup_lng = pickup_lng
-            
-        warehouse = _get_doc_warehouse(doc)
-        dropoff_lat, dropoff_lng = _get_warehouse_coords(warehouse)
-        if dropoff_lat is not None and dropoff_lng is not None:
-            job.dropoff_lat = dropoff_lat
-            job.dropoff_lng = dropoff_lng
-        else:
-            company_lat, company_lng = _get_company_coords(job.company)
-            if company_lat is not None and company_lng is not None:
-                job.dropoff_lat = company_lat
-                job.dropoff_lng = company_lng
-                
-    else:
-        # Sales process
-        job.customer_name = doc.get("customer_name") or doc.get("customer")
-        job.customer_phone = (
-            doc.get("contact_mobile")
-            or doc.get("mobile_no")
-            or doc.get("contact_phone")
-            or doc.get("phone")
-        )
-
-        if not job.customer_phone and doc.get("customer"):
-            try:
-                job.customer_phone = frappe.db.get_value("Customer", doc.get("customer"), "mobile_no")
-            except Exception:
-                pass
-
-        # For sales, pickup is the Warehouse/Company
-        warehouse = _get_doc_warehouse(doc)
-        pickup_lat, pickup_lng = _get_warehouse_coords(warehouse)
-        if pickup_lat is not None and pickup_lng is not None:
-            job.pickup_lat = pickup_lat
-            job.pickup_lng = pickup_lng
-        else:
-            company_lat, company_lng = _get_company_coords(job.company)
-            if company_lat is not None and company_lng is not None:
-                job.pickup_lat = company_lat
-                job.pickup_lng = company_lng
-
+    job.update(details)
     job.insert(ignore_permissions=True)

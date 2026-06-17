@@ -47,7 +47,14 @@ doctype_js = {
     "Customer": "public/js/track_map_sync.js",
     "Company": "public/js/track_map_sync.js",
     "Warehouse": "public/js/track_map_sync.js",
-    "Supplier": "public/js/track_map_sync.js"
+    "Supplier": "public/js/track_map_sync.js",
+    "Sales Order": "public/js/track_create_job.js",
+    "Sales Invoice": "public/js/track_create_job.js",
+    "Delivery Note": "public/js/track_create_job.js",
+    "POS Invoice": "public/js/track_create_job.js",
+    "Purchase Order": "public/js/track_create_job.js",
+    "Purchase Invoice": "public/js/track_create_job.js",
+    "Purchase Receipt": "public/js/track_create_job.js"
 }
 # doctype_list_js = {"doctype" : "public/js/doctype_list.js"}
 # doctype_tree_js = {"doctype" : "public/js/doctype_tree.js"}
