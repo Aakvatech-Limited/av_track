@@ -17,7 +17,17 @@
   "column_2",
   "brand_logo",
   "tracking_section",
-  "tracking_domain"
+  "tracking_domain",
+  "auto_create_jobs_section",
+  "auto_create_sales_order",
+  "auto_create_sales_invoice",
+  "auto_create_delivery_note",
+  "auto_create_pos_invoice",
+  "column_3",
+  "auto_create_purchase_order",
+  "auto_create_purchase_invoice",
+  "auto_create_purchase_receipt",
+  "auto_create_ibt_request"
  ],
  "fields": [
   {
@@ -80,9 +90,37 @@
       "label": "Tracking"
     },
     {
-      "fieldname": "auto_create_jobs",
+      "fieldname": "tracking_domain",
+      "fieldtype": "Data",
+      "label": "Tracking Link Domain"
+    },
+    {
+      "fieldname": "auto_create_jobs_section",
+      "fieldtype": "Section Break",
+      "label": "Auto Create Jobs"
+    },
+    {
+      "fieldname": "auto_create_sales_order",
       "fieldtype": "Check",
-      "label": "Auto Create Delivery Jobs",
+      "label": "Enable for Sales Order",
+      "default": 0
+    },
+    {
+      "fieldname": "auto_create_sales_invoice",
+      "fieldtype": "Check",
+      "label": "Enable for Sales Invoice",
+      "default": 0
+    },
+    {
+      "fieldname": "auto_create_delivery_note",
+      "fieldtype": "Check",
+      "label": "Enable for Delivery Note",
+      "default": 0
+    },
+    {
+      "fieldname": "auto_create_pos_invoice",
+      "fieldtype": "Check",
+      "label": "Enable for POS Invoice",
       "default": 0
     },
     {
@@ -90,15 +128,28 @@
       "fieldtype": "Column Break"
     },
     {
-      "fieldname": "source_doctype",
-      "fieldtype": "Select",
-      "label": "Source DocType",
-      "options": "Sales Order\nPOS Invoice\nDelivery Note\nSales Invoice\nIBT Request\nPurchase Order\nPurchase Invoice\nPurchase Receipt"
+      "fieldname": "auto_create_purchase_order",
+      "fieldtype": "Check",
+      "label": "Enable for Purchase Order",
+      "default": 0
     },
     {
-      "fieldname": "tracking_domain",
-      "fieldtype": "Data",
-      "label": "Tracking Link Domain"
+      "fieldname": "auto_create_purchase_invoice",
+      "fieldtype": "Check",
+      "label": "Enable for Purchase Invoice",
+      "default": 0
+    },
+    {
+      "fieldname": "auto_create_purchase_receipt",
+      "fieldtype": "Check",
+      "label": "Enable for Purchase Receipt",
+      "default": 0
+    },
+    {
+      "fieldname": "auto_create_ibt_request",
+      "fieldtype": "Check",
+      "label": "Enable for IBT Request",
+      "default": 0
     }
   ],
  "issingle": 1,

@@ -9,11 +9,23 @@ def _get_track_settings():
 
 def _should_create_for_doctype(source_doctype):
     settings = _get_track_settings()
-    if not settings.get("auto_create_jobs"):
+    
+    doctype_map = {
+        "Sales Order": "auto_create_sales_order",
+        "Sales Invoice": "auto_create_sales_invoice",
+        "Delivery Note": "auto_create_delivery_note",
+        "POS Invoice": "auto_create_pos_invoice",
+        "Purchase Order": "auto_create_purchase_order",
+        "Purchase Invoice": "auto_create_purchase_invoice",
+        "Purchase Receipt": "auto_create_purchase_receipt",
+        "IBT Request": "auto_create_ibt_request"
+    }
+    
+    field_name = doctype_map.get(source_doctype)
+    if not field_name:
         return False
-    if not settings.get("source_doctype"):
-        return False
-    return settings.get("source_doctype") == source_doctype
+        
+    return bool(settings.get(field_name))
 
 
 def _get_doc_warehouse(doc):
