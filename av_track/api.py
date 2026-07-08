@@ -67,7 +67,7 @@ def _validate_status_transition(current_status, new_status):
     allowed = {
         "": {"Assigned"},
         None: {"Assigned"},
-        "Assigned": {"Picked Up", "Failed"},
+        "Assigned": {"Picked Up", "En Route", "Failed"},
         "Picked Up": {"En Route", "Failed"},
         "En Route": {"Delivered", "Failed"},
         "Delivered": set(),
@@ -84,7 +84,10 @@ def _set_status_timestamps(job, status, status_time):
     job.last_status_at = status_time
     if status == "Assigned" and not job.assigned_at:
         job.assigned_at = status_time
-    if status == "Picked Up":
+    if status == "Picked Up" and not job.picked_up_at:
+        job.picked_up_at = status_time
+    if status == "En Route" and not job.picked_up_at:
+        # If skipping straight from Assigned to En Route in the driver UI
         job.picked_up_at = status_time
     if status == "Delivered":
         job.delivered_at = status_time
@@ -615,14 +618,17 @@ def create_delivery_job(
     job.customer_phone = customer_phone or ""
     job.notes = notes or ""
     job.assigned_driver = assigned_driver
+    now = now_datetime()
     job.status = "Assigned"
+    job.assigned_at = now
+    job.last_status_at = now
     job.insert(ignore_permissions=True)
 
     _create_status_log(
         job.name,
         "Assigned",
         frappe.session.user,
-        now_datetime(),
+        now,
     )
 
     return job.name
