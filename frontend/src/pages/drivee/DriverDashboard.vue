@@ -228,46 +228,9 @@
               </svg>
               Delivery Notes
             </div>
-            <p class="mt-2 text-sm text-slate-600">
-              Gate code <span class="font-semibold">1234</span>. Please leave at front desk with security if no answer.
+            <p class="mt-2 text-sm text-slate-600 whitespace-pre-wrap">
+              {{ selectedStop?.notes || 'No delivery notes provided.' }}
             </p>
-          </div>
-          <div>
-            <div class="flex items-center justify-between">
-              <h4 class="text-xs font-bold uppercase tracking-widest text-slate-500">Items to Deliver (3)</h4>
-              <span class="text-xs font-medium text-slate-400">Box ID: #B-882</span>
-            </div>
-            <div class="mt-3 space-y-2">
-              <div class="flex items-center justify-between rounded-lg border border-slate-100 bg-white p-3">
-                <div class="flex items-center gap-3 text-slate-600">
-                  <svg class="h-5 w-5 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M20.5 7.5L12 12l-8.5-4.5M3 7.5l9-4.5 9 4.5v9L12 21l-9-4.5v-9z" stroke-linecap="round" stroke-linejoin="round" />
-                  </svg>
-                  <span class="text-sm">Premium Office Chair</span>
-                </div>
-                <span class="text-xs font-bold text-slate-400">x1</span>
-              </div>
-              <div class="flex items-center justify-between rounded-lg border border-slate-100 bg-white p-3">
-                <div class="flex items-center gap-3 text-slate-600">
-                  <svg class="h-5 w-5 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M21 8H7a2 2 0 0 0-2 2v9h14a2 2 0 0 0 2-2V8z" stroke-linecap="round" stroke-linejoin="round" />
-                    <path d="M7 8V6a2 2 0 0 1 2-2h6l4 4" stroke-linecap="round" stroke-linejoin="round" />
-                  </svg>
-                  <span class="text-sm">Desk Organizer Kit</span>
-                </div>
-                <span class="text-xs font-bold text-slate-400">x2</span>
-              </div>
-              <div class="flex items-center justify-between rounded-lg border border-slate-100 bg-white p-3">
-                <div class="flex items-center gap-3 text-slate-600">
-                  <svg class="h-5 w-5 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M6 4h12v16H6z" stroke-linecap="round" stroke-linejoin="round" />
-                    <path d="M8 8h8M8 12h8M8 16h5" stroke-linecap="round" stroke-linejoin="round" />
-                  </svg>
-                  <span class="text-sm">A4 Paper Pack (500s)</span>
-                </div>
-                <span class="text-xs font-bold text-slate-400">x5</span>
-              </div>
-            </div>
           </div>
         </div>
         <div class="absolute bottom-0 left-0 right-0 flex flex-col gap-3 border-t border-slate-100 bg-white/95 px-6 py-5">
@@ -457,6 +420,7 @@ const loadDriverDashboard = async () => {
       pickup_address: stop.pickup_address,
       customer_name: stop.customer_name,
       customer_phone: stop.customer_phone,
+      notes: stop.notes,
     }))
   } catch (error) {
     // keep defaults
