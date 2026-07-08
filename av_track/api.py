@@ -215,6 +215,7 @@ def get_driver_dashboard():
         "account": account.get("name"),
         "driver_id": driver_id,
         "full_name": full_name,
+        "user_image": frappe.db.get_value("User", frappe.session.user, "user_image"),
         "is_active": account.get("is_active"),
         "is_online": account.get("is_online"),
     }
