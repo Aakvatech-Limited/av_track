@@ -244,6 +244,8 @@ def get_driver_dashboard():
             "scheduled_dropoff",
             "last_status_at",
             "notes",
+            "source_doctype",
+            "source_docname",
         ],
         order_by="modified desc",
         limit=1,
@@ -265,6 +267,8 @@ def get_driver_dashboard():
             "customer_phone",
             "last_status_at",
             "notes",
+            "source_doctype",
+            "source_docname",
         ],
         order_by="modified asc",
         ignore_permissions=True,
@@ -273,6 +277,15 @@ def get_driver_dashboard():
     settings = frappe.get_single("Track Settings")
     map_provider = settings.map_provider
     map_api_key = settings.get_password("map_api_key") if settings else None
+
+    # Fetch items for current task
+    if current_task:
+        task = current_task[0]
+        task["items"] = _fetch_job_items(task.get("source_doctype"), task.get("source_docname"))
+
+    # Fetch items for upcoming stops
+    for stop in upcoming_stops:
+        stop["items"] = _fetch_job_items(stop.get("source_doctype"), stop.get("source_docname"))
 
     return {
         "profile": profile,
@@ -291,6 +304,24 @@ def get_driver_dashboard():
         "upcoming_stops": upcoming_stops,
     }
 
+
+def _fetch_job_items(source_doctype, source_docname):
+    if not source_doctype or not source_docname:
+        return []
+        
+    items = []
+    try:
+        source_doc = frappe.get_doc(source_doctype, source_docname)
+        for row in source_doc.get("items", []):
+            name = row.get("item_name") or row.get("item_code") or row.get("item") or "Unknown Item"
+            qty = row.get("qty") or row.get("quantity") or 1
+            items.append({
+                "name": name,
+                "qty": qty
+            })
+    except Exception:
+        pass
+    return items
 
 @frappe.whitelist()
 def set_driver_online(is_online):

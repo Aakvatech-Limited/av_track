@@ -232,6 +232,23 @@
               {{ selectedStop?.notes || 'No delivery notes provided.' }}
             </p>
           </div>
+          
+          <div v-if="selectedStop?.items && selectedStop.items.length > 0">
+            <div class="flex items-center justify-between">
+              <h4 class="text-xs font-bold uppercase tracking-widest text-slate-500">Items to Deliver ({{ selectedStop.items.length }})</h4>
+            </div>
+            <div class="mt-3 space-y-2">
+              <div v-for="(item, idx) in selectedStop.items" :key="idx" class="flex items-center justify-between rounded-lg border border-slate-100 bg-white p-3">
+                <div class="flex items-center gap-3 text-slate-600">
+                  <svg class="h-5 w-5 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M20.5 7.5L12 12l-8.5-4.5M3 7.5l9-4.5 9 4.5v9L12 21l-9-4.5v-9z" stroke-linecap="round" stroke-linejoin="round" />
+                  </svg>
+                  <span class="text-sm font-medium">{{ item.name }}</span>
+                </div>
+                <span class="text-xs font-bold text-slate-500">x{{ item.qty }}</span>
+              </div>
+            </div>
+          </div>
         </div>
         <div class="absolute bottom-0 left-0 right-0 flex flex-col gap-3 border-t border-slate-100 bg-white/95 px-6 py-5">
           <button
@@ -421,6 +438,7 @@ const loadDriverDashboard = async () => {
       customer_name: stop.customer_name,
       customer_phone: stop.customer_phone,
       notes: stop.notes,
+      items: stop.items || [],
     }))
   } catch (error) {
     // keep defaults
