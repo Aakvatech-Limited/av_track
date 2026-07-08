@@ -85,7 +85,7 @@ def _get_customer_coords(customer):
         coords = frappe.db.get_value(
             "Customer",
             customer,
-            ["track_pickup_lat", "track_pickup_lng"],
+            ["track_customer_lat", "track_customer_lng"],
         )
         if coords:
             return coords[0], coords[1]
