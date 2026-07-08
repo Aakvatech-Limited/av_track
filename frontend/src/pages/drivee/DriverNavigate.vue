@@ -57,8 +57,7 @@
                   <p class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Arriving In</p>
                 </div>
                 <div class="mt-1 flex items-baseline gap-2">
-                  <h3 class="text-3xl font-bold text-slate-900">{{ etaMinutes }}</h3>
-                  <span class="text-lg font-bold text-slate-900">min</span>
+                  <h3 class="text-2xl font-bold text-slate-900">{{ etaText }}</h3>
                   <span class="text-sm font-medium text-slate-400">{{ distanceLabel }}</span>
                 </div>
               </div>
@@ -148,16 +147,13 @@ let pingIntervalId = null
 const PING_INTERVAL_MS = 30000
 const DEVICE_ID_KEY = 'av-track-device-id'
 
-const etaMinutes = computed(() => {
+const etaText = computed(() => {
   const durationText = routeSummary.value.durationText
   if (durationText) {
-    const numeric = String(durationText).match(/\d+/)
-    if (numeric) return numeric[0]
+    return durationText
   }
   if (!currentTask.value) return '--'
-  const eta = currentTask.value.eta_label || ''
-  const numeric = String(eta).match(/\d+/)
-  return numeric ? numeric[0] : '--'
+  return currentTask.value.eta_label || '--'
 })
 
 const distanceLabel = computed(() => {
@@ -167,13 +163,15 @@ const distanceLabel = computed(() => {
 })
 
 const taskAddress = computed(() => {
-  if (!currentTask.value) return 'Current task address'
-  return currentTask.value.dropoff_address || currentTask.value.pickup_address || 'Current task address'
+  if (!currentTask.value) return 'Unknown Destination'
+  return currentTask.value.dropoff_address || currentTask.value.pickup_address || 'Address not provided'
 })
 
 const taskSubAddress = computed(() => {
-  if (!currentTask.value) return 'Navigation preview'
-  return currentTask.value.pickup_address || 'Navigation preview'
+  if (!currentTask.value) return ''
+  return currentTask.value.pickup_address && currentTask.value.dropoff_address 
+    ? currentTask.value.pickup_address 
+    : ''
 })
 
 const customerName = computed(() => {
