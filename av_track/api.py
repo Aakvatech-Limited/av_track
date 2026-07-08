@@ -107,6 +107,25 @@ def _create_status_log(
     log.insert(ignore_permissions=True)
 
 
+def _notify_driver_realtime(driver_id, event, message):
+    if not driver_id:
+        return
+    accounts = frappe.get_all(
+        "Track Driver Account",
+        filters={"driver": driver_id, "is_active": 1},
+        fields=["user"],
+    )
+    for acc in accounts:
+        user = acc.get("user")
+        if user:
+            frappe.publish_realtime(
+                event=event,
+                message=message,
+                user=user,
+                after_commit=True
+            )
+
+
 def _update_job_status_and_log(job, status, changed_by, lat=None, lng=None, note=None):
     _validate_status_transition(job.status, status)
     _enforce_single_en_route_job(job.assigned_driver, job.name, status)
@@ -660,6 +679,12 @@ def create_delivery_job(
         "Assigned",
         frappe.session.user,
         now,
+    )
+
+    _notify_driver_realtime(
+        assigned_driver,
+        "new_delivery_job",
+        {"title": "New Delivery Assigned", "job": job.name}
     )
 
     return job.name
