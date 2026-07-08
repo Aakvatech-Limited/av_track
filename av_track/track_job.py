@@ -126,6 +126,7 @@ def get_delivery_job_details(source_doctype, source_docname):
         if pickup_lat is not None and pickup_lng is not None:
             details["pickup_lat"] = pickup_lat
             details["pickup_lng"] = pickup_lng
+            details["pickup_address"] = doc.get("supplier")
         else:
             frappe.throw("Supplier {0} is missing tracking coordinates (Latitude/Longitude). Please set them first.".format(doc.get("supplier")))
             
@@ -134,11 +135,13 @@ def get_delivery_job_details(source_doctype, source_docname):
         if dropoff_lat is not None and dropoff_lng is not None:
             details["dropoff_lat"] = dropoff_lat
             details["dropoff_lng"] = dropoff_lng
+            details["dropoff_address"] = warehouse
         else:
             company_lat, company_lng = _get_company_coords(details["company"])
             if company_lat is not None and company_lng is not None:
                 details["dropoff_lat"] = company_lat
                 details["dropoff_lng"] = company_lng
+                details["dropoff_address"] = details["company"]
             else:
                 frappe.throw("Warehouse {0} and Company {1} are both missing tracking coordinates. Please set them first.".format(warehouse or "", details["company"]))
                 
@@ -164,11 +167,13 @@ def get_delivery_job_details(source_doctype, source_docname):
         if pickup_lat is not None and pickup_lng is not None:
             details["pickup_lat"] = pickup_lat
             details["pickup_lng"] = pickup_lng
+            details["pickup_address"] = warehouse
         else:
             company_lat, company_lng = _get_company_coords(details["company"])
             if company_lat is not None and company_lng is not None:
                 details["pickup_lat"] = company_lat
                 details["pickup_lng"] = company_lng
+                details["pickup_address"] = details["company"]
             else:
                 frappe.throw("Warehouse {0} and Company {1} are both missing tracking coordinates. Please set them first.".format(warehouse or "", details["company"]))
                 
@@ -178,6 +183,7 @@ def get_delivery_job_details(source_doctype, source_docname):
         if dropoff_lat is not None and dropoff_lng is not None:
             details["dropoff_lat"] = dropoff_lat
             details["dropoff_lng"] = dropoff_lng
+            details["dropoff_address"] = customer
         else:
             frappe.throw("Customer {0} is missing tracking coordinates (Latitude/Longitude). Please set them first.".format(customer))
                 
