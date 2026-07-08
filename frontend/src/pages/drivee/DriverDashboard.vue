@@ -19,12 +19,12 @@
               <p class="text-slate-500 text-xs">Driver ID: {{ driverId }}</p>
             </div>
           </div>
-          <button class="relative flex h-10 w-10 items-center justify-center rounded-lg bg-slate-100 text-slate-700">
+          <button @click="openNotifications" class="relative flex h-10 w-10 items-center justify-center rounded-lg bg-slate-100 text-slate-700">
             <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M18 8a6 6 0 10-12 0c0 7-3 7-3 7h18s-3 0-3-7" />
               <path d="M13.73 21a2 2 0 01-3.46 0" />
             </svg>
-            <span class="absolute top-2 right-2 h-2 w-2 rounded-full bg-red-500"></span>
+            <span v-if="hasUnreadNotifications" class="absolute top-2 right-2 h-2 w-2 rounded-full bg-red-500"></span>
           </button>
         </div>
 
@@ -296,6 +296,7 @@ const driverId = ref('')
 const driverInitials = ref('')
 const completedDeliveries = ref(0)
 const dailyGoal = ref(0)
+const hasUnreadNotifications = ref(false)
 
 const progressPercentage = computed(() => {
   if (!dailyGoal.value) return 0
@@ -335,6 +336,13 @@ const getInitials = (name) => {
   const first = parts[0]?.[0] || ''
   const second = parts[1]?.[0] || ''
   return (first + second).toUpperCase()
+}
+
+const openNotifications = () => {
+  dialogTitle.value = 'Notifications'
+  dialogMessage.value = 'You have no new notifications.'
+  dialogVariant.value = 'info'
+  dialogVisible.value = true
 }
 
 const toggleOnline = async () => {
