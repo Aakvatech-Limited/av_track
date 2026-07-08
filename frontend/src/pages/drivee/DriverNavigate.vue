@@ -9,7 +9,7 @@
         ></div>
         <div class="pointer-events-none absolute inset-0 z-10 bg-black/10"></div>
 
-        <div class="relative z-20 p-4 pt-10">
+        <div v-if="nextStepTitle" class="relative z-20 p-4 pt-10">
           <div class="rounded-2xl border border-white/15 bg-blue-600/95 p-4 text-white shadow-xl backdrop-blur">
             <div class="flex items-center gap-4">
               <div class="flex flex-col items-center">
@@ -154,16 +154,16 @@ const etaMinutes = computed(() => {
     const numeric = String(durationText).match(/\d+/)
     if (numeric) return numeric[0]
   }
-  if (!currentTask.value) return '8'
+  if (!currentTask.value) return '--'
   const eta = currentTask.value.eta_label || ''
   const numeric = String(eta).match(/\d+/)
-  return numeric ? numeric[0] : '8'
+  return numeric ? numeric[0] : '--'
 })
 
 const distanceLabel = computed(() => {
   if (routeSummary.value.distanceText) return `(${routeSummary.value.distanceText})`
-  if (!currentTask.value) return '(1.2 miles)'
-  return currentTask.value.distance_label ? `(${currentTask.value.distance_label})` : '(1.2 miles)'
+  if (!currentTask.value) return ''
+  return currentTask.value.distance_label ? `(${currentTask.value.distance_label})` : ''
 })
 
 const taskAddress = computed(() => {
@@ -181,9 +181,9 @@ const customerName = computed(() => {
   return currentTask.value.customer_name || 'Customer'
 })
 
-const nextStepDistance = computed(() => routeSummary.value.stepDistance || '400 ft')
+const nextStepDistance = computed(() => routeSummary.value.stepDistance || '')
 
-const nextStepTitle = computed(() => routeSummary.value.stepInstruction || 'Destination')
+const nextStepTitle = computed(() => routeSummary.value.stepInstruction || '')
 
 const nextStepPrefix = computed(() =>
   routeSummary.value.stepInstruction ? 'Next step' : 'Continue to'
