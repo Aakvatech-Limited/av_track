@@ -67,7 +67,7 @@ def _validate_status_transition(current_status, new_status):
     allowed = {
         "": {"Assigned"},
         None: {"Assigned"},
-        "Assigned": {"Picked Up", "Failed"},
+        "Assigned": {"Picked Up", "En Route", "Failed"},
         "Picked Up": {"En Route", "Failed"},
         "En Route": {"Delivered", "Failed"},
         "Delivered": set(),
@@ -84,7 +84,10 @@ def _set_status_timestamps(job, status, status_time):
     job.last_status_at = status_time
     if status == "Assigned" and not job.assigned_at:
         job.assigned_at = status_time
-    if status == "Picked Up":
+    if status == "Picked Up" and not job.picked_up_at:
+        job.picked_up_at = status_time
+    if status == "En Route" and not job.picked_up_at:
+        # If skipping straight from Assigned to En Route in the driver UI
         job.picked_up_at = status_time
     if status == "Delivered":
         job.delivered_at = status_time
@@ -102,6 +105,25 @@ def _create_status_log(
     log.lng = lng
     log.note = note
     log.insert(ignore_permissions=True)
+
+
+def _notify_driver_realtime(driver_id, event, message):
+    if not driver_id:
+        return
+    accounts = frappe.get_all(
+        "Track Driver Account",
+        filters={"driver": driver_id, "is_active": 1},
+        fields=["user"],
+    )
+    for acc in accounts:
+        user = acc.get("user")
+        if user:
+            frappe.publish_realtime(
+                event=event,
+                message=message,
+                user=user,
+                after_commit=True
+            )
 
 
 def _update_job_status_and_log(job, status, changed_by, lat=None, lng=None, note=None):
@@ -193,6 +215,7 @@ def get_driver_dashboard():
         "account": account.get("name"),
         "driver_id": driver_id,
         "full_name": full_name,
+        "user_image": frappe.db.get_value("User", frappe.session.user, "user_image"),
         "is_active": account.get("is_active"),
         "is_online": account.get("is_online"),
     }
@@ -240,6 +263,9 @@ def get_driver_dashboard():
             "dropoff_lng",
             "scheduled_dropoff",
             "last_status_at",
+            "notes",
+            "source_doctype",
+            "source_docname",
         ],
         order_by="modified desc",
         limit=1,
@@ -260,6 +286,9 @@ def get_driver_dashboard():
             "customer_name",
             "customer_phone",
             "last_status_at",
+            "notes",
+            "source_doctype",
+            "source_docname",
         ],
         order_by="modified asc",
         ignore_permissions=True,
@@ -268,6 +297,15 @@ def get_driver_dashboard():
     settings = frappe.get_single("Track Settings")
     map_provider = settings.map_provider
     map_api_key = settings.get_password("map_api_key") if settings else None
+
+    # Fetch items for current task
+    if current_task:
+        task = current_task[0]
+        task["items"] = _fetch_job_items(task.get("source_doctype"), task.get("source_docname"))
+
+    # Fetch items for upcoming stops
+    for stop in upcoming_stops:
+        stop["items"] = _fetch_job_items(stop.get("source_doctype"), stop.get("source_docname"))
 
     return {
         "profile": profile,
@@ -286,6 +324,24 @@ def get_driver_dashboard():
         "upcoming_stops": upcoming_stops,
     }
 
+
+def _fetch_job_items(source_doctype, source_docname):
+    if not source_doctype or not source_docname:
+        return []
+        
+    items = []
+    try:
+        source_doc = frappe.get_doc(source_doctype, source_docname)
+        for row in source_doc.get("items", []):
+            name = row.get("item_name") or row.get("item_code") or row.get("item") or "Unknown Item"
+            qty = row.get("qty") or row.get("quantity") or 1
+            items.append({
+                "name": name,
+                "qty": qty
+            })
+    except Exception:
+        pass
+    return items
 
 @frappe.whitelist()
 def set_driver_online(is_online):
@@ -613,14 +669,23 @@ def create_delivery_job(
     job.customer_phone = customer_phone or ""
     job.notes = notes or ""
     job.assigned_driver = assigned_driver
+    now = now_datetime()
     job.status = "Assigned"
+    job.assigned_at = now
+    job.last_status_at = now
     job.insert(ignore_permissions=True)
 
     _create_status_log(
         job.name,
         "Assigned",
         frappe.session.user,
-        now_datetime(),
+        now,
+    )
+
+    _notify_driver_realtime(
+        assigned_driver,
+        "new_delivery_job",
+        {"title": "New Delivery Assigned", "job": job.name}
     )
 
     return job.name

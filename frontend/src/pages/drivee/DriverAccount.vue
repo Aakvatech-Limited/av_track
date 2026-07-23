@@ -6,7 +6,7 @@
           <div class="relative">
             <div class="h-28 w-28 overflow-hidden rounded-full border-4 border-white shadow">
               <img
-                src="https://i.pravatar.cc/200?img=12"
+                :src="profile.user_image || `https://ui-avatars.com/api/?name=${encodeURIComponent(profile.full_name || 'Driver')}&background=random`"
                 alt="Driver profile"
                 class="h-full w-full object-cover"
               />
@@ -19,7 +19,7 @@
           </div>
           <h2 class="mt-4 text-2xl font-semibold">{{ profile.full_name || 'Driver' }}</h2>
           <p class="mt-2 text-sm text-slate-500">
-            <span class="text-amber-500">★</span> 4.9 · Driver ID: {{ profile.driver_id || '---' }}
+            <span class="text-amber-500">★</span> {{ profile.rating || '5.0' }} · Driver ID: {{ profile.driver_id || '---' }}
           </p>
         </div>
 
@@ -166,6 +166,8 @@ const router = useRouter()
 const profile = ref({
   full_name: 'Loading...',
   driver_id: '...',
+  user_image: null,
+  rating: '5.0',
 })
 
 const loadProfile = async () => {
