@@ -119,8 +119,18 @@ av_track.open_map_picker_dialog = function(frm, lat_field, lng_field) {
             return;
         }
 
+        let container = document.getElementById(map_id);
+        if (!container) {
+            setTimeout(init_leaflet_map, 100);
+            return;
+        }
+
+        if (container._leaflet_id) {
+            return;
+        }
+
         let initial_zoom = has_existing ? 15 : 12;
-        map = L.map(map_id).setView([current_lat, current_lng], initial_zoom);
+        map = L.map(container).setView([current_lat, current_lng], initial_zoom);
 
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             maxZoom: 19,
@@ -149,7 +159,9 @@ av_track.open_map_picker_dialog = function(frm, lat_field, lng_field) {
         });
 
         setTimeout(function() {
-            map.invalidateSize();
+            if (map) {
+                map.invalidateSize();
+            }
         }, 300);
     }
 
@@ -163,13 +175,13 @@ av_track.open_map_picker_dialog = function(frm, lat_field, lng_field) {
     }
 
     if (typeof L !== 'undefined') {
-        setTimeout(init_leaflet_map, 100);
+        setTimeout(init_leaflet_map, 150);
     } else {
         frappe.require([
             'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css',
             'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js'
         ], function() {
-            setTimeout(init_leaflet_map, 100);
+            setTimeout(init_leaflet_map, 150);
         });
     }
 };
