@@ -163,7 +163,7 @@ def _update_job_status_and_log(job, status, changed_by, lat=None, lng=None, note
 
 
 def _data_url_to_attachment(
-    data_url, filename, attached_to_doctype=None, attached_to_name=None
+    data_url, filename, attached_to_doctype=None, attached_to_name=None, is_private=1
 ):
     if not data_url or not isinstance(data_url, str):
         return data_url
@@ -194,7 +194,7 @@ def _data_url_to_attachment(
         content=binary,
         dt=attached_to_doctype,
         dn=attached_to_name,
-        is_private=0,
+        is_private=is_private,
     )
     return file_doc.file_url
 
@@ -442,29 +442,34 @@ def update_job_status(job_id, status, lat=None, lng=None, note=None):
 def _create_pod_entry(
     job, pod_type=None, note=None, photo=None, signature=None, lat=None, lng=None
 ):
-    photo_url = _data_url_to_attachment(
-        photo,
-        f"{job.name}-pod-photo",
-        attached_to_doctype="Track Delivery Job",
-        attached_to_name=job.name,
-    )
-    signature_url = _data_url_to_attachment(
-        signature,
-        f"{job.name}-pod-signature",
-        attached_to_doctype="Track Delivery Job",
-        attached_to_name=job.name,
-    )
-
     pod = frappe.new_doc("Track Proof of Delivery")
     pod.delivery_job = job.name
     pod.pod_type = pod_type or "Signature"
     pod.recorded_at = now_datetime()
     pod.notes = note
-    pod.photo = photo_url
-    pod.signature = signature_url
     pod.lat = lat
     pod.lng = lng
     pod.insert(ignore_permissions=True)
+
+    photo_url = _data_url_to_attachment(
+        photo,
+        f"{pod.name}-photo",
+        attached_to_doctype="Track Proof of Delivery",
+        attached_to_name=pod.name,
+        is_private=1,
+    )
+    signature_url = _data_url_to_attachment(
+        signature,
+        f"{pod.name}-signature",
+        attached_to_doctype="Track Proof of Delivery",
+        attached_to_name=pod.name,
+        is_private=1,
+    )
+
+    if photo_url or signature_url:
+        pod.photo = photo_url
+        pod.signature = signature_url
+        pod.save(ignore_permissions=True)
 
     return pod
 
