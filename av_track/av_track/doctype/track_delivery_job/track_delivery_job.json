@@ -114,7 +114,8 @@
   {
    "fieldname": "pickup_address",
    "fieldtype": "Small Text",
-   "label": "Pickup Address"
+   "label": "Pickup Address",
+   "read_only": 1
   },
   {
    "fieldname": "column_4",
@@ -124,7 +125,8 @@
    "fieldname": "pickup_lat",
    "fieldtype": "Float",
    "label": "Pickup Latitude",
-   "precision": "8"
+   "precision": "8",
+   "read_only": 1
   },
   {
    "fieldname": "column_5",
@@ -134,7 +136,8 @@
    "fieldname": "pickup_lng",
    "fieldtype": "Float",
    "label": "Pickup Longitude",
-   "precision": "8"
+   "precision": "8",
+   "read_only": 1
   },
   {
    "fieldname": "dropoff_section",
@@ -144,7 +147,8 @@
   {
    "fieldname": "dropoff_address",
    "fieldtype": "Small Text",
-   "label": "Dropoff Address"
+   "label": "Dropoff Address",
+   "read_only": 1
   },
   {
    "fieldname": "column_6",
@@ -154,7 +158,8 @@
    "fieldname": "dropoff_lat",
    "fieldtype": "Float",
    "label": "Dropoff Latitude",
-   "precision": "8"
+   "precision": "8",
+   "read_only": 1
   },
   {
    "fieldname": "column_7",
@@ -164,7 +169,8 @@
    "fieldname": "dropoff_lng",
    "fieldtype": "Float",
    "label": "Dropoff Longitude",
-   "precision": "8"
+   "precision": "8",
+   "read_only": 1
   },
   {
    "fieldname": "customer_section",
