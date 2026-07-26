@@ -670,23 +670,28 @@ def create_delivery_job(
     job.notes = notes or ""
     job.assigned_driver = assigned_driver
     now = now_datetime()
-    job.status = "Assigned"
-    job.assigned_at = now
-    job.last_status_at = now
-    job.insert(ignore_permissions=True)
 
-    _create_status_log(
-        job.name,
-        "Assigned",
-        frappe.session.user,
-        now,
-    )
+    if assigned_driver:
+        job.status = "Assigned"
+        job.assigned_at = now
+        job.last_status_at = now
+        job.insert(ignore_permissions=True)
 
-    _notify_driver_realtime(
-        assigned_driver,
-        "new_delivery_job",
-        {"title": "New Delivery Assigned", "job": job.name}
-    )
+        _create_status_log(
+            job.name,
+            "Assigned",
+            frappe.session.user,
+            now,
+        )
+
+        _notify_driver_realtime(
+            assigned_driver,
+            "new_delivery_job",
+            {"title": "New Delivery Assigned", "job": job.name}
+        )
+    else:
+        job.status = ""
+        job.insert(ignore_permissions=True)
 
     return job.name
 

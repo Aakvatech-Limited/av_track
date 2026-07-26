@@ -6,7 +6,17 @@ from frappe.utils import now_datetime
 
 class TrackDeliveryJob(Document):
     def validate(self):
+        self._sync_driver_assignment_status()
         self._set_status_timestamps()
+
+    def _sync_driver_assignment_status(self):
+        if self.assigned_driver:
+            if not self.status:
+                self.status = "Assigned"
+        else:
+            if self.status == "Assigned":
+                self.status = ""
+                self.assigned_at = None
 
     def _set_status_timestamps(self):
         if not self.status:

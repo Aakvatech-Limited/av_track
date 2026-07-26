@@ -69,7 +69,8 @@
    "fieldtype": "Select",
    "in_list_view": 1,
    "label": "Status",
-   "options": "\nAssigned\nPicked Up\nEn Route\nDelivered\nFailed"
+   "options": "\nAssigned\nPicked Up\nEn Route\nDelivered\nFailed",
+   "read_only": 1
   },
   {
    "fieldname": "column_2",

@@ -94,6 +94,134 @@ def _get_customer_coords(customer):
     return None, None
 
 
+def _fetch_phone_from_contact(contact_name):
+    if not contact_name:
+        return None
+    try:
+        contact = frappe.db.get_value("Contact", contact_name, ["mobile_no", "phone"], as_dict=True)
+        if contact:
+            return contact.get("mobile_no") or contact.get("phone")
+    except Exception:
+        pass
+    return None
+
+
+def _fetch_customer_phone(doc):
+    # 1. Direct fields on source doc (Sales Order / Delivery Note / Sales Invoice)
+    phone = (
+        doc.get("contact_mobile")
+        or doc.get("mobile_no")
+        or doc.get("contact_phone")
+        or doc.get("phone")
+    )
+    if phone:
+        return phone
+
+    # 2. Contact Person linked on source doc
+    if doc.get("contact_person"):
+        phone = _fetch_phone_from_contact(doc.get("contact_person"))
+        if phone:
+            return phone
+
+    # 3. Customer record fields
+    customer_id = doc.get("customer")
+    if customer_id:
+        try:
+            cust = frappe.db.get_value(
+                "Customer",
+                customer_id,
+                ["mobile_no", "phone_no", "customer_primary_contact"],
+                as_dict=True,
+            )
+            if cust:
+                if cust.get("mobile_no"):
+                    return cust.get("mobile_no")
+                if cust.get("phone_no"):
+                    return cust.get("phone_no")
+                if cust.get("customer_primary_contact"):
+                    phone = _fetch_phone_from_contact(cust.get("customer_primary_contact"))
+                    if phone:
+                        return phone
+        except Exception:
+            pass
+
+        # 4. Fallback: Search any Contact linked to this Customer
+        try:
+            contact_links = frappe.get_all(
+                "Dynamic Link",
+                filters={
+                    "link_doctype": "Customer",
+                    "link_name": customer_id,
+                    "parenttype": "Contact",
+                },
+                pluck="parent",
+                limit=1,
+            )
+            if contact_links:
+                phone = _fetch_phone_from_contact(contact_links[0])
+                if phone:
+                    return phone
+        except Exception:
+            pass
+
+    return None
+
+
+def _fetch_supplier_phone(doc):
+    phone = (
+        doc.get("contact_mobile")
+        or doc.get("mobile_no")
+        or doc.get("contact_phone")
+        or doc.get("phone")
+    )
+    if phone:
+        return phone
+
+    if doc.get("contact_person"):
+        phone = _fetch_phone_from_contact(doc.get("contact_person"))
+        if phone:
+            return phone
+
+    supplier_id = doc.get("supplier")
+    if supplier_id:
+        try:
+            supp = frappe.db.get_value(
+                "Supplier",
+                supplier_id,
+                ["mobile_no", "supplier_primary_contact"],
+                as_dict=True,
+            )
+            if supp:
+                if supp.get("mobile_no"):
+                    return supp.get("mobile_no")
+                if supp.get("supplier_primary_contact"):
+                    phone = _fetch_phone_from_contact(supp.get("supplier_primary_contact"))
+                    if phone:
+                        return phone
+        except Exception:
+            pass
+
+        try:
+            contact_links = frappe.get_all(
+                "Dynamic Link",
+                filters={
+                    "link_doctype": "Supplier",
+                    "link_name": supplier_id,
+                    "parenttype": "Contact",
+                },
+                pluck="parent",
+                limit=1,
+            )
+            if contact_links:
+                phone = _fetch_phone_from_contact(contact_links[0])
+                if phone:
+                    return phone
+        except Exception:
+            pass
+
+    return None
+
+
 @frappe.whitelist()
 def get_delivery_job_details(source_doctype, source_docname):
     doc = frappe.get_doc(source_doctype, source_docname)
@@ -109,17 +237,7 @@ def get_delivery_job_details(source_doctype, source_docname):
 
     if is_purchase:
         details["customer_name"] = doc.get("supplier_name") or doc.get("supplier")
-        details["customer_phone"] = (
-            doc.get("contact_mobile")
-            or doc.get("mobile_no")
-            or doc.get("contact_phone")
-            or doc.get("phone")
-        )
-        if not details["customer_phone"] and doc.get("supplier"):
-            try:
-                details["customer_phone"] = frappe.db.get_value("Supplier", doc.get("supplier"), "mobile_no")
-            except Exception:
-                pass
+        details["customer_phone"] = _fetch_supplier_phone(doc)
                 
         # For purchases, pickup is the Supplier, dropoff is the Warehouse
         pickup_lat, pickup_lng = _get_supplier_coords(doc.get("supplier"))
@@ -148,18 +266,7 @@ def get_delivery_job_details(source_doctype, source_docname):
     else:
         # Sales process
         details["customer_name"] = doc.get("customer_name") or doc.get("customer")
-        details["customer_phone"] = (
-            doc.get("contact_mobile")
-            or doc.get("mobile_no")
-            or doc.get("contact_phone")
-            or doc.get("phone")
-        )
-
-        if not details["customer_phone"] and doc.get("customer"):
-            try:
-                details["customer_phone"] = frappe.db.get_value("Customer", doc.get("customer"), "mobile_no")
-            except Exception:
-                pass
+        details["customer_phone"] = _fetch_customer_phone(doc)
 
         # For sales, pickup is the Warehouse/Company
         warehouse = _get_doc_warehouse(doc)
@@ -207,4 +314,9 @@ def create_from_source(doc, method=None):
     details = get_delivery_job_details(doc.doctype, doc.name)
     job = frappe.new_doc("Track Delivery Job")
     job.update(details)
+    now = frappe.utils.now_datetime()
+    job.status = "Assigned"
+    job.assigned_at = now
+    job.last_status_at = now
     job.insert(ignore_permissions=True)
+
