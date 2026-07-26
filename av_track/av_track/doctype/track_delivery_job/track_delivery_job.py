@@ -30,7 +30,9 @@ class TrackDeliveryJob(Document):
 
         if self.status == "Assigned" and not self.assigned_at:
             self.assigned_at = status_time
-        elif self.status == "Picked Up":
+        elif self.status == "Picked Up" and not self.picked_up_at:
+            self.picked_up_at = status_time
+        elif self.status == "En Route" and not self.picked_up_at:
             self.picked_up_at = status_time
         elif self.status == "Delivered":
             self.delivered_at = status_time

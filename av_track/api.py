@@ -126,6 +126,26 @@ def _notify_driver_realtime(driver_id, event, message):
             )
 
 
+def _broadcast_job_status_update(job):
+    payload = {
+        "job": job.name,
+        "status": job.status,
+        "assigned_driver": job.assigned_driver,
+        "last_status_at": str(job.last_status_at) if job.last_status_at else None,
+        "picked_up_at": str(job.picked_up_at) if job.picked_up_at else None,
+        "delivered_at": str(job.delivered_at) if job.delivered_at else None,
+    }
+
+    if job.assigned_driver:
+        _notify_driver_realtime(job.assigned_driver, "delivery_job_status_updated", payload)
+
+    frappe.publish_realtime(
+        event="delivery_job_status_updated",
+        message=payload,
+        after_commit=True,
+    )
+
+
 def _update_job_status_and_log(job, status, changed_by, lat=None, lng=None, note=None):
     _validate_status_transition(job.status, status)
     _enforce_single_en_route_job(job.assigned_driver, job.name, status)
@@ -137,6 +157,7 @@ def _update_job_status_and_log(job, status, changed_by, lat=None, lng=None, note
     _create_status_log(
         job.name, status, changed_by, status_time, lat=lat, lng=lng, note=note
     )
+    _broadcast_job_status_update(job)
 
     return status_time
 
@@ -736,43 +757,28 @@ def complete_delivery_for_source(
         if current == "En Route":
             break
         if current in ("", None, "Assigned"):
+            job.status = "Picked Up"
+            _set_status_timestamps(job, "Picked Up", now)
+            job.save(ignore_permissions=True)
             _create_status_log(
                 job.name, "Picked Up", user, now, note="Auto-advanced by system"
             )
-            frappe.db.set_value(
-                "Track Delivery Job",
-                job.name,
-                {
-                    "status": "Picked Up",
-                    "picked_up_at": now,
-                    "last_status_at": now,
-                },
-            )
+            _broadcast_job_status_update(job)
             current = "Picked Up"
         elif current == "Picked Up":
+            job.status = "En Route"
+            _set_status_timestamps(job, "En Route", now)
+            job.save(ignore_permissions=True)
             _create_status_log(
                 job.name, "En Route", user, now, note="Auto-advanced by system"
             )
-            frappe.db.set_value(
-                "Track Delivery Job",
-                job.name,
-                {
-                    "status": "En Route",
-                    "last_status_at": now,
-                },
-            )
+            _broadcast_job_status_update(job)
             current = "En Route"
 
     # Now mark Delivered
-    frappe.db.set_value(
-        "Track Delivery Job",
-        job.name,
-        {
-            "status": "Delivered",
-            "delivered_at": now,
-            "last_status_at": now,
-        },
-    )
+    job.status = "Delivered"
+    _set_status_timestamps(job, "Delivered", now)
+    job.save(ignore_permissions=True)
     _create_status_log(
         job.name,
         "Delivered",
@@ -782,6 +788,7 @@ def complete_delivery_for_source(
         lng=lng,
         note=note or "Auto-completed on source document submission",
     )
+    _broadcast_job_status_update(job)
 
     # Create a minimal PoD record (note-only — photo/signature captured by driver)
     existing_pod = frappe.db.exists(
