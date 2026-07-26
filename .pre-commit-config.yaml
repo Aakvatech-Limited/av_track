@@ -63,6 +63,12 @@ repos:
                 av_track/public/js/lib/.*
             )$
 
+  - repo: https://github.com/returntocorp/semgrep
+    rev: v1.168.0
+    hooks:
+      - id: semgrep
+        args: ['--config', 'https://github.com/frappe/semgrep-rules', '--error']
+
 ci:
     autoupdate_schedule: weekly
     skip: []
