@@ -126,6 +126,26 @@ def _notify_driver_realtime(driver_id, event, message):
             )
 
 
+def _broadcast_job_status_update(job):
+    payload = {
+        "job": job.name,
+        "status": job.status,
+        "assigned_driver": job.assigned_driver,
+        "last_status_at": str(job.last_status_at) if job.last_status_at else None,
+        "picked_up_at": str(job.picked_up_at) if job.picked_up_at else None,
+        "delivered_at": str(job.delivered_at) if job.delivered_at else None,
+    }
+
+    if job.assigned_driver:
+        _notify_driver_realtime(job.assigned_driver, "delivery_job_status_updated", payload)
+
+    frappe.publish_realtime(
+        event="delivery_job_status_updated",
+        message=payload,
+        after_commit=True,
+    )
+
+
 def _update_job_status_and_log(job, status, changed_by, lat=None, lng=None, note=None):
     _validate_status_transition(job.status, status)
     _enforce_single_en_route_job(job.assigned_driver, job.name, status)
@@ -137,12 +157,13 @@ def _update_job_status_and_log(job, status, changed_by, lat=None, lng=None, note
     _create_status_log(
         job.name, status, changed_by, status_time, lat=lat, lng=lng, note=note
     )
+    _broadcast_job_status_update(job)
 
     return status_time
 
 
 def _data_url_to_attachment(
-    data_url, filename, attached_to_doctype=None, attached_to_name=None
+    data_url, filename, attached_to_doctype=None, attached_to_name=None, is_private=1
 ):
     if not data_url or not isinstance(data_url, str):
         return data_url
@@ -173,7 +194,7 @@ def _data_url_to_attachment(
         content=binary,
         dt=attached_to_doctype,
         dn=attached_to_name,
-        is_private=0,
+        is_private=is_private,
     )
     return file_doc.file_url
 
@@ -421,29 +442,34 @@ def update_job_status(job_id, status, lat=None, lng=None, note=None):
 def _create_pod_entry(
     job, pod_type=None, note=None, photo=None, signature=None, lat=None, lng=None
 ):
-    photo_url = _data_url_to_attachment(
-        photo,
-        f"{job.name}-pod-photo",
-        attached_to_doctype="Track Delivery Job",
-        attached_to_name=job.name,
-    )
-    signature_url = _data_url_to_attachment(
-        signature,
-        f"{job.name}-pod-signature",
-        attached_to_doctype="Track Delivery Job",
-        attached_to_name=job.name,
-    )
-
     pod = frappe.new_doc("Track Proof of Delivery")
     pod.delivery_job = job.name
     pod.pod_type = pod_type or "Signature"
     pod.recorded_at = now_datetime()
     pod.notes = note
-    pod.photo = photo_url
-    pod.signature = signature_url
     pod.lat = lat
     pod.lng = lng
     pod.insert(ignore_permissions=True)
+
+    photo_url = _data_url_to_attachment(
+        photo,
+        f"{pod.name}-photo",
+        attached_to_doctype="Track Proof of Delivery",
+        attached_to_name=pod.name,
+        is_private=1,
+    )
+    signature_url = _data_url_to_attachment(
+        signature,
+        f"{pod.name}-signature",
+        attached_to_doctype="Track Proof of Delivery",
+        attached_to_name=pod.name,
+        is_private=1,
+    )
+
+    if photo_url or signature_url:
+        pod.photo = photo_url
+        pod.signature = signature_url
+        pod.save(ignore_permissions=True)
 
     return pod
 
@@ -670,23 +696,28 @@ def create_delivery_job(
     job.notes = notes or ""
     job.assigned_driver = assigned_driver
     now = now_datetime()
-    job.status = "Assigned"
-    job.assigned_at = now
-    job.last_status_at = now
-    job.insert(ignore_permissions=True)
 
-    _create_status_log(
-        job.name,
-        "Assigned",
-        frappe.session.user,
-        now,
-    )
+    if assigned_driver:
+        job.status = "Assigned"
+        job.assigned_at = now
+        job.last_status_at = now
+        job.insert(ignore_permissions=True)
 
-    _notify_driver_realtime(
-        assigned_driver,
-        "new_delivery_job",
-        {"title": "New Delivery Assigned", "job": job.name}
-    )
+        _create_status_log(
+            job.name,
+            "Assigned",
+            frappe.session.user,
+            now,
+        )
+
+        _notify_driver_realtime(
+            assigned_driver,
+            "new_delivery_job",
+            {"title": "New Delivery Assigned", "job": job.name}
+        )
+    else:
+        job.status = ""
+        job.insert(ignore_permissions=True)
 
     return job.name
 
@@ -731,43 +762,28 @@ def complete_delivery_for_source(
         if current == "En Route":
             break
         if current in ("", None, "Assigned"):
+            job.status = "Picked Up"
+            _set_status_timestamps(job, "Picked Up", now)
+            job.save(ignore_permissions=True)
             _create_status_log(
                 job.name, "Picked Up", user, now, note="Auto-advanced by system"
             )
-            frappe.db.set_value(
-                "Track Delivery Job",
-                job.name,
-                {
-                    "status": "Picked Up",
-                    "picked_up_at": now,
-                    "last_status_at": now,
-                },
-            )
+            _broadcast_job_status_update(job)
             current = "Picked Up"
         elif current == "Picked Up":
+            job.status = "En Route"
+            _set_status_timestamps(job, "En Route", now)
+            job.save(ignore_permissions=True)
             _create_status_log(
                 job.name, "En Route", user, now, note="Auto-advanced by system"
             )
-            frappe.db.set_value(
-                "Track Delivery Job",
-                job.name,
-                {
-                    "status": "En Route",
-                    "last_status_at": now,
-                },
-            )
+            _broadcast_job_status_update(job)
             current = "En Route"
 
     # Now mark Delivered
-    frappe.db.set_value(
-        "Track Delivery Job",
-        job.name,
-        {
-            "status": "Delivered",
-            "delivered_at": now,
-            "last_status_at": now,
-        },
-    )
+    job.status = "Delivered"
+    _set_status_timestamps(job, "Delivered", now)
+    job.save(ignore_permissions=True)
     _create_status_log(
         job.name,
         "Delivered",
@@ -777,6 +793,7 @@ def complete_delivery_for_source(
         lng=lng,
         note=note or "Auto-completed on source document submission",
     )
+    _broadcast_job_status_update(job)
 
     # Create a minimal PoD record (note-only — photo/signature captured by driver)
     existing_pod = frappe.db.exists(

@@ -69,7 +69,8 @@
    "fieldtype": "Select",
    "in_list_view": 1,
    "label": "Status",
-   "options": "\nAssigned\nPicked Up\nEn Route\nDelivered\nFailed"
+   "options": "\nAssigned\nPicked Up\nEn Route\nDelivered\nFailed",
+   "read_only": 1
   },
   {
    "fieldname": "column_2",
@@ -210,7 +211,8 @@
   {
    "fieldname": "last_status_at",
    "fieldtype": "Datetime",
-   "label": "Last Status At"
+   "label": "Last Status At",
+   "read_only": 1
   },
   {
    "fieldname": "notes_section",
@@ -230,7 +232,8 @@
   {
    "fieldname": "assigned_at",
    "fieldtype": "Datetime",
-   "label": "Assigned At"
+   "label": "Assigned At",
+   "read_only": 1
   },
   {
    "fieldname": "column_11",
@@ -239,7 +242,8 @@
   {
    "fieldname": "picked_up_at",
    "fieldtype": "Datetime",
-   "label": "Picked Up At"
+   "label": "Picked Up At",
+   "read_only": 1
   },
   {
    "fieldname": "column_12",
@@ -248,7 +252,8 @@
   {
    "fieldname": "delivered_at",
    "fieldtype": "Datetime",
-   "label": "Delivered At"
+   "label": "Delivered At",
+   "read_only": 1
   }
  ],
  "links": [],
