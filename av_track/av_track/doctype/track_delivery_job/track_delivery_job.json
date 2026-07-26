@@ -114,8 +114,7 @@
   {
    "fieldname": "pickup_address",
    "fieldtype": "Small Text",
-   "label": "Pickup Address",
-   "read_only": 1
+   "label": "Pickup Address"
   },
   {
    "fieldname": "column_4",
@@ -125,8 +124,7 @@
    "fieldname": "pickup_lat",
    "fieldtype": "Float",
    "label": "Pickup Latitude",
-   "precision": "8",
-   "read_only": 1
+   "precision": "8"
   },
   {
    "fieldname": "column_5",
@@ -136,8 +134,7 @@
    "fieldname": "pickup_lng",
    "fieldtype": "Float",
    "label": "Pickup Longitude",
-   "precision": "8",
-   "read_only": 1
+   "precision": "8"
   },
   {
    "fieldname": "dropoff_section",
@@ -147,8 +144,7 @@
   {
    "fieldname": "dropoff_address",
    "fieldtype": "Small Text",
-   "label": "Dropoff Address",
-   "read_only": 1
+   "label": "Dropoff Address"
   },
   {
    "fieldname": "column_6",
@@ -158,8 +154,7 @@
    "fieldname": "dropoff_lat",
    "fieldtype": "Float",
    "label": "Dropoff Latitude",
-   "precision": "8",
-   "read_only": 1
+   "precision": "8"
   },
   {
    "fieldname": "column_7",
@@ -169,8 +164,7 @@
    "fieldname": "dropoff_lng",
    "fieldtype": "Float",
    "label": "Dropoff Longitude",
-   "precision": "8",
-   "read_only": 1
+   "precision": "8"
   },
   {
    "fieldname": "customer_section",
@@ -217,7 +211,8 @@
   {
    "fieldname": "last_status_at",
    "fieldtype": "Datetime",
-   "label": "Last Status At"
+   "label": "Last Status At",
+   "read_only": 1
   },
   {
    "fieldname": "notes_section",
@@ -237,7 +232,8 @@
   {
    "fieldname": "assigned_at",
    "fieldtype": "Datetime",
-   "label": "Assigned At"
+   "label": "Assigned At",
+   "read_only": 1
   },
   {
    "fieldname": "column_11",
@@ -246,7 +242,8 @@
   {
    "fieldname": "picked_up_at",
    "fieldtype": "Datetime",
-   "label": "Picked Up At"
+   "label": "Picked Up At",
+   "read_only": 1
   },
   {
    "fieldname": "column_12",
@@ -255,7 +252,8 @@
   {
    "fieldname": "delivered_at",
    "fieldtype": "Datetime",
-   "label": "Delivered At"
+   "label": "Delivered At",
+   "read_only": 1
   }
  ],
  "links": [],
