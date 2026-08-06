@@ -61,15 +61,17 @@ def _enforce_single_en_route_job(driver_id, current_job_name, next_status):
 
 
 def _validate_status_transition(current_status, new_status):
-    if current_status == new_status:
+    if not current_status:
         return
 
     allowed = {
-        "": {"Assigned"},
-        None: {"Assigned"},
-        "Assigned": {"Picked Up", "En Route", "Failed"},
-        "Picked Up": {"En Route", "Failed"},
-        "En Route": {"Delivered", "Failed"},
+        "": {"Assigned", "Accepted", "En Route to Pickup", "En Route", "Picked Up", "En Route to Delivery", "Delivered", "Failed"},
+        "Assigned": {"Accepted", "En Route to Pickup", "Picked Up", "En Route to Delivery", "En Route", "Failed"},
+        "Accepted": {"En Route to Pickup", "Picked Up", "En Route to Delivery", "En Route", "Failed"},
+        "En Route to Pickup": {"Picked Up", "En Route to Delivery", "En Route", "Failed"},
+        "Picked Up": {"En Route to Delivery", "En Route", "Delivered", "Failed"},
+        "En Route to Delivery": {"Delivered", "Failed"},
+        "En Route": {"En Route to Delivery", "Delivered", "Failed"},
         "Delivered": set(),
         "Failed": set(),
     }
@@ -290,7 +292,7 @@ def get_driver_dashboard():
         "Track Delivery Job",
         filters={
             "assigned_driver": driver_id,
-            "status": "En Route",
+            "status": ["in", ["En Route to Pickup", "En Route to Delivery", "En Route"]],
         },
         fields=[
             "name",
@@ -318,7 +320,7 @@ def get_driver_dashboard():
         "Track Delivery Job",
         filters={
             "assigned_driver": driver_id,
-            "status": ["in", ["Assigned", "Picked Up"]],
+            "status": ["in", ["Assigned", "Accepted", "Picked Up"]],
         },
         fields=[
             "name",

@@ -396,11 +396,19 @@ const setAsCurrentTask = async () => {
   isSettingCurrentTask.value = true
   try {
     const { updateJobStatus } = await import('@/utils/auth')
-    await updateJobStatus(selectedStop.value.jobName, 'En Route')
+    const currentStatus = selectedStop.value.status || ''
+    let targetStatus = 'En Route to Pickup'
+    if (currentStatus === 'Picked Up') {
+      targetStatus = 'En Route to Delivery'
+    } else if (currentStatus === 'En Route' || currentStatus === 'En Route to Delivery' || currentStatus === 'En Route to Pickup') {
+      targetStatus = currentStatus
+    }
+
+    await updateJobStatus(selectedStop.value.jobName, targetStatus)
     closeStopSheet()
     await loadDriverDashboard()
   } catch (error) {
-    showDialog('Could Not Update Task', 'Failed to set this stop as current task.', 'error')
+    showDialog('Could Not Update Task', error.message || 'Failed to set this stop as current task.', 'error')
   } finally {
     isSettingCurrentTask.value = false
   }
