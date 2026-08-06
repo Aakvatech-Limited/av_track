@@ -287,6 +287,7 @@
 
 <script setup>
 import { ref, computed, watch, onMounted, nextTick } from 'vue'
+import { io } from 'socket.io-client'
 import DriverBottomNav from '@/components/DriverBottomNav.vue'
 import InfoDialog from '@/components/InfoDialog.vue'
 
@@ -455,6 +456,27 @@ const loadDriverDashboard = async () => {
 
 onMounted(() => {
   loadDriverDashboard()
+
+  const host = window.location.hostname
+  const port = window.location.port === '8080' ? ':9001' : (window.location.port ? `:${window.location.port}` : '')
+  const protocol = window.location.protocol || 'http:'
+  const url = `${protocol}//${host}${port}`
+
+  try {
+    const socket = io(url, { withCredentials: true, reconnectionAttempts: 5 })
+    socket.on('new_delivery_job', () => {
+      loadDriverDashboard()
+      showDialog('New Job Assigned', 'A new delivery job has been assigned to you!', 'info')
+    })
+    socket.on('delivery_job_status_updated', () => {
+      loadDriverDashboard()
+    })
+  } catch (e) {}
+
+  if (window.frappe?.realtime) {
+    window.frappe.realtime.on('new_delivery_job', () => loadDriverDashboard())
+    window.frappe.realtime.on('delivery_job_status_updated', () => loadDriverDashboard())
+  }
 })
 
 watch([currentTask, mapApiKey, mapProvider], () => {

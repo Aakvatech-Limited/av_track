@@ -125,6 +125,12 @@ def _notify_driver_realtime(driver_id, event, message):
                 after_commit=True
             )
 
+    frappe.publish_realtime(
+        event=event,
+        message=message,
+        after_commit=True
+    )
+
 
 def _broadcast_job_status_update(job):
     payload = {
