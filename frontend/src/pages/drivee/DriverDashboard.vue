@@ -498,7 +498,7 @@ watch([currentTask, mapApiKey, mapProvider], () => {
 })
 
 const loadGoogleMapsScript = (key) => {
-  if (!key) return Promise.reject(new Error('Missing map key'))
+  if (!key) return Promise.reject(new Error('Missing Google Maps API key'))
   if (window.google?.maps) return Promise.resolve(window.google.maps)
   if (window.__avTrackGoogleMapsPromise) return window.__avTrackGoogleMapsPromise
 
@@ -515,26 +515,9 @@ const loadGoogleMapsScript = (key) => {
   return window.__avTrackGoogleMapsPromise
 }
 
-const loadLeafletScript = () => {
-  if (window.L) return Promise.resolve(window.L)
-  if (window.__avTrackLeafletPromise) return window.__avTrackLeafletPromise
-  window.__avTrackLeafletPromise = new Promise((resolve, reject) => {
-    const link = document.createElement('link')
-    link.rel = 'stylesheet'
-    link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css'
-    document.head.appendChild(link)
-
-    const script = document.createElement('script')
-    script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js'
-    script.onload = () => resolve(window.L)
-    script.onerror = () => reject(new Error('Failed to load Leaflet'))
-    document.head.appendChild(script)
-  })
-  return window.__avTrackLeafletPromise
-}
-
 const initMap = async () => {
   if (!mapContainer.value || !currentTask.value) return
+  if (!mapApiKey.value) return
 
   const container = mapContainer.value
   if (!container.clientWidth || !container.clientHeight) {
@@ -551,73 +534,40 @@ const initMap = async () => {
   const lng = dropLng || pickLng || 0
   if (!lat || !lng) return
 
-  if (mapProvider.value === 'Google Maps' && mapApiKey.value) {
-    try {
-      const maps = await loadGoogleMapsScript(mapApiKey.value)
-      const center = { lat, lng }
-
-      if (!mapInstance || typeof mapInstance.setCenter !== 'function') {
-        mapContainer.value.innerHTML = ''
-        mapInstance = new maps.Map(mapContainer.value, {
-          center,
-          zoom: 16,
-          mapTypeId: 'roadmap',
-          disableDefaultUI: true,
-          gestureHandling: 'greedy',
-        })
-      } else {
-        mapInstance.setCenter(center)
-      }
-
-      if (!mapMarker || typeof mapMarker.setPosition !== 'function') {
-        mapMarker = new maps.Marker({
-          position: center,
-          map: mapInstance,
-        })
-      } else {
-        mapMarker.setPosition(center)
-      }
-
-      maps.event.trigger(mapInstance, 'resize')
-      setTimeout(() => {
-        if (mapInstance && typeof mapInstance.setCenter === 'function') {
-          mapInstance.setCenter(center)
-        }
-      }, 120)
-      return
-    } catch (e) {
-      console.warn('Google maps script failed, falling back to Leaflet:', e)
-    }
-  }
-
-  // Fallback to Leaflet / OpenStreetMap
   try {
-    const L = await loadLeafletScript()
-    if (!mapInstance || typeof mapInstance.setView !== 'function') {
+    const maps = await loadGoogleMapsScript(mapApiKey.value)
+    const center = { lat, lng }
+
+    if (!mapInstance || typeof mapInstance.setCenter !== 'function') {
       mapContainer.value.innerHTML = ''
-      mapInstance = L.map(mapContainer.value, {
-        zoomControl: false,
-        attributionControl: false,
-      }).setView([lat, lng], 15)
-
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        maxZoom: 19,
-      }).addTo(mapInstance)
-
-      mapMarker = L.marker([lat, lng]).addTo(mapInstance)
+      mapInstance = new maps.Map(mapContainer.value, {
+        center,
+        zoom: 16,
+        mapTypeId: 'roadmap',
+        disableDefaultUI: true,
+        gestureHandling: 'greedy',
+      })
     } else {
-      mapInstance.setView([lat, lng], 15)
-      if (mapMarker && typeof mapMarker.setLatLng === 'function') {
-        mapMarker.setLatLng([lat, lng])
-      }
+      mapInstance.setCenter(center)
     }
+
+    if (!mapMarker || typeof mapMarker.setPosition !== 'function') {
+      mapMarker = new maps.Marker({
+        position: center,
+        map: mapInstance,
+      })
+    } else {
+      mapMarker.setPosition(center)
+    }
+
+    maps.event.trigger(mapInstance, 'resize')
     setTimeout(() => {
-      if (mapInstance && typeof mapInstance.invalidateSize === 'function') {
-        mapInstance.invalidateSize()
+      if (mapInstance && typeof mapInstance.setCenter === 'function') {
+        mapInstance.setCenter(center)
       }
     }, 120)
   } catch (e) {
-    console.error('Map init error:', e)
+    console.warn('Google Maps initialization failed:', e)
   }
 }
 </script>
