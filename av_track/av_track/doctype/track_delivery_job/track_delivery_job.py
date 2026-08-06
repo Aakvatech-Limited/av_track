@@ -43,9 +43,29 @@ def fetch_google_driving_distance(lat1, lng1, lat2, lng2):
 
 class TrackDeliveryJob(Document):
     def validate(self):
+        self._sync_pickup_coordinates()
         self._sync_driver_assignment_status()
         self._set_status_timestamps()
         self._sync_distances()
+
+    def _sync_pickup_coordinates(self):
+        # 1. Try Warehouse if pickup_lat/lng is empty
+        if (not self.pickup_lat or not self.pickup_lng) and self.pickup_address:
+            if frappe.db.exists("Warehouse", self.pickup_address):
+                wh_lat = frappe.db.get_value("Warehouse", self.pickup_address, "track_pickup_lat")
+                wh_lng = frappe.db.get_value("Warehouse", self.pickup_address, "track_pickup_lng")
+                if wh_lat and wh_lng:
+                    self.pickup_lat = flt(wh_lat)
+                    self.pickup_lng = flt(wh_lng)
+
+        # 2. Fallback to Company if pickup_lat/lng is still empty
+        if (not self.pickup_lat or not self.pickup_lng) and self.company:
+            if frappe.db.exists("Company", self.company):
+                comp_lat = frappe.db.get_value("Company", self.company, "track_pickup_lat")
+                comp_lng = frappe.db.get_value("Company", self.company, "track_pickup_lng")
+                if comp_lat and comp_lng:
+                    self.pickup_lat = flt(comp_lat)
+                    self.pickup_lng = flt(comp_lng)
 
     def _sync_driver_assignment_status(self):
         if self.assigned_driver:
