@@ -515,18 +515,26 @@ const loadGoogleMapsScript = (key) => {
   return window.__avTrackGoogleMapsPromise
 }
 
+let resizeObserver = null
+
 const initMap = async () => {
   if (!currentTask.value) return
 
   await nextTick()
+
+  const container = mapContainer.value
+  if (!container || container.offsetWidth === 0 || container.offsetHeight === 0) {
+    setTimeout(() => initMap(), 100)
+    return
+  }
 
   const dropLat = Number(currentTask.value.dropoff_lat)
   const dropLng = Number(currentTask.value.dropoff_lng)
   const pickLat = Number(currentTask.value.pickup_lat)
   const pickLng = Number(currentTask.value.pickup_lng)
 
-  const lat = dropLat || pickLat || 0
-  const lng = dropLng || pickLng || 0
+  const lat = dropLat || pickLat
+  const lng = dropLng || pickLng
   if (!lat || !lng) return
 
   let key = mapApiKey.value
@@ -544,17 +552,11 @@ const initMap = async () => {
 
   try {
     const maps = await loadGoogleMapsScript(key)
-
-    if (!mapContainer.value) {
-      setTimeout(() => initMap(), 150)
-      return
-    }
-
     const center = { lat, lng }
 
     if (!mapInstance || typeof mapInstance.setCenter !== 'function') {
-      mapContainer.value.innerHTML = ''
-      mapInstance = new maps.Map(mapContainer.value, {
+      container.innerHTML = ''
+      mapInstance = new maps.Map(container, {
         center,
         zoom: 16,
         mapTypeId: 'roadmap',
@@ -575,19 +577,29 @@ const initMap = async () => {
       mapMarker.setPosition(center)
     }
 
+    if (window.ResizeObserver && !resizeObserver) {
+      resizeObserver = new ResizeObserver(() => {
+        if (mapInstance && window.google?.maps) {
+          window.google.maps.event.trigger(mapInstance, 'resize')
+          mapInstance.setCenter(center)
+        }
+      })
+      resizeObserver.observe(container)
+    }
+
     maps.event.trigger(mapInstance, 'resize')
     setTimeout(() => {
       if (mapInstance && typeof mapInstance.setCenter === 'function') {
         maps.event.trigger(mapInstance, 'resize')
         mapInstance.setCenter(center)
       }
-    }, 100)
+    }, 150)
     setTimeout(() => {
       if (mapInstance && typeof mapInstance.setCenter === 'function') {
         maps.event.trigger(mapInstance, 'resize')
         mapInstance.setCenter(center)
       }
-    }, 400)
+    }, 500)
   } catch (e) {
     console.warn('Google Maps initialization failed:', e)
   }
