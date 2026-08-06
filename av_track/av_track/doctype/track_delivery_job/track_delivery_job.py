@@ -48,6 +48,27 @@ class TrackDeliveryJob(Document):
         self._set_status_timestamps()
         self._sync_distances()
 
+    def on_update(self):
+        if self.has_value_changed("assigned_driver") and self.assigned_driver:
+            self._notify_assignment_realtime()
+
+    def _notify_assignment_realtime(self):
+        try:
+            from av_track.api import _notify_driver_realtime
+            _notify_driver_realtime(
+                self.assigned_driver,
+                "new_delivery_job",
+                {
+                    "title": "New Delivery Assigned",
+                    "job": self.name,
+                    "customer_name": self.customer_name or "",
+                    "pickup_address": self.pickup_address or "",
+                    "dropoff_address": self.dropoff_address or "",
+                }
+            )
+        except Exception:
+            frappe.log_error(title="AV Track Realtime Notification Error", message=frappe.get_traceback())
+
     def _sync_pickup_coordinates(self):
         # 1. Try Warehouse if pickup_lat/lng is empty
         if (not self.pickup_lat or not self.pickup_lng) and self.pickup_address:
