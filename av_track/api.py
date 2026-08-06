@@ -117,7 +117,22 @@ def _notify_driver_realtime(driver_id, event, message):
     )
     for acc in accounts:
         user = acc.get("user")
-        if user:
+        if user and frappe.db.exists("User", user):
+            try:
+                subject = message.get("title") if isinstance(message, dict) else str(message)
+                if not subject:
+                    subject = "New Delivery Job Update"
+                frappe.get_doc({
+                    "doctype": "Notification Log",
+                    "for_user": user,
+                    "subject": subject,
+                    "document_type": "Track Delivery Job",
+                    "document_name": message.get("job") if isinstance(message, dict) else None,
+                    "type": "Alert"
+                }).insert(ignore_permissions=True)
+            except Exception:
+                pass
+
             frappe.publish_realtime(
                 event=event,
                 message=message,

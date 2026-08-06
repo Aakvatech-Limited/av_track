@@ -68,7 +68,7 @@ onMounted(() => {
   const port = window.location.port === '8080' ? ':9001' : (window.location.port ? `:${window.location.port}` : '')
   const protocol = window.location.protocol || 'http:'
   
-  const url = `${protocol}//${host}${port}`
+  const url = `${protocol}//${host}${port}/${host}`
   
   try {
     socket = io(url, { 
