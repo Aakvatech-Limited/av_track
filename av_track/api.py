@@ -496,8 +496,53 @@ def upload_pod(
         lat=lat,
         lng=lng,
     )
-
     return {"name": pod.name}
+
+
+@frappe.whitelist()
+def update_delivery_address(job_id, address, lat=None, lng=None):
+    if not job_id:
+        frappe.throw("Job ID is required.")
+
+    job = frappe.get_doc("Track Delivery Job", job_id)
+    if address:
+        job.dropoff_address = address
+    if lat is not None:
+        job.dropoff_lat = flt(lat)
+    if lng is not None:
+        job.dropoff_lng = flt(lng)
+
+    job.save(ignore_permissions=True)
+    _broadcast_job_status_update(job)
+
+    return {
+        "status": "success",
+        "message": "Delivery location updated",
+        "dropoff_address": job.dropoff_address,
+        "dropoff_lat": job.dropoff_lat,
+        "dropoff_lng": job.dropoff_lng,
+    }
+
+
+@frappe.whitelist()
+def log_delivery_delay(job_id, reason, notes=None):
+    if not job_id:
+        frappe.throw("Job ID is required.")
+
+    job = frappe.get_doc("Track Delivery Job", job_id)
+    job.delay_reason = reason
+    if notes:
+        job.delay_notes = notes
+
+    job.save(ignore_permissions=True)
+    _broadcast_job_status_update(job)
+
+    return {
+        "status": "success",
+        "message": "Delay logged successfully",
+        "delay_reason": job.delay_reason,
+        "delay_notes": job.delay_notes,
+    }
 
 
 @frappe.whitelist()

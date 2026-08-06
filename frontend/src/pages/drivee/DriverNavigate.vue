@@ -226,12 +226,35 @@ const getCurrentPosition = () =>
     )
   })
 
+let driverMarker = null
+
 const sendLocationPing = async () => {
   const jobId = currentTask.value?.name
   if (!jobId) return
 
   const position = await getCurrentPosition()
   if (position.lat == null || position.lng == null) return
+
+  if (mapInstance && window.google?.maps) {
+    const driverPos = { lat: Number(position.lat), lng: Number(position.lng) }
+    if (!driverMarker) {
+      driverMarker = new window.google.maps.Marker({
+        position: driverPos,
+        map: mapInstance,
+        title: 'Driver Current Location',
+        icon: {
+          path: window.google.maps.SymbolPath.FORWARD_CLOSED_ARROW,
+          scale: 6,
+          fillColor: '#1d4ed8',
+          fillOpacity: 1,
+          strokeWeight: 2,
+          strokeColor: '#ffffff',
+        },
+      })
+    } else {
+      driverMarker.setPosition(driverPos)
+    }
+  }
 
   try {
     await postLocationPing({
