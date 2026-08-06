@@ -77,14 +77,13 @@
           </span>
         </div>
         <div v-if="currentTask" class="rounded-xl overflow-hidden bg-white border border-slate-200 shadow-[0_18px_45px_rgba(15,23,42,0.1)]">
-          <div class="relative h-44">
+          <div class="relative h-44 overflow-hidden rounded-t-xl">
             <div
               ref="mapContainer"
-              class="absolute inset-0 z-0 h-full w-full"
+              class="absolute inset-0 z-10 h-full w-full"
             ></div>
-            <div class="absolute inset-0 z-10 bg-gradient-to-br from-slate-200 to-slate-300 opacity-20"></div>
-            <div class="absolute inset-0 z-20 bg-gradient-to-t from-black/30 to-transparent"></div>
-            <div class="absolute bottom-3 left-4 flex items-center gap-2">
+            <div class="pointer-events-none absolute inset-0 z-20 bg-gradient-to-t from-black/40 via-transparent to-transparent"></div>
+            <div class="pointer-events-none absolute bottom-3 left-4 z-30 flex items-center gap-2">
               <span class="inline-flex h-6 w-6 items-center justify-center rounded-full bg-white text-blue-500">
                 <svg class="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
                   <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
@@ -516,10 +515,26 @@ const loadGoogleMapsScript = (key) => {
   return window.__avTrackGoogleMapsPromise
 }
 
+const loadLeafletScript = () => {
+  if (window.L) return Promise.resolve(window.L)
+  if (window.__avTrackLeafletPromise) return window.__avTrackLeafletPromise
+  window.__avTrackLeafletPromise = new Promise((resolve, reject) => {
+    const link = document.createElement('link')
+    link.rel = 'stylesheet'
+    link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css'
+    document.head.appendChild(link)
+
+    const script = document.createElement('script')
+    script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js'
+    script.onload = () => resolve(window.L)
+    script.onerror = () => reject(new Error('Failed to load Leaflet'))
+    document.head.appendChild(script)
+  })
+  return window.__avTrackLeafletPromise
+}
+
 const initMap = async () => {
   if (!mapContainer.value || !currentTask.value) return
-  if (mapProvider.value !== 'Google Maps') return
-  if (!mapApiKey.value) return
 
   const container = mapContainer.value
   if (!container.clientWidth || !container.clientHeight) {
@@ -527,67 +542,83 @@ const initMap = async () => {
     return
   }
 
-  const dropLat = currentTask.value.dropoff_lat
-  const dropLng = currentTask.value.dropoff_lng
-  const pickLat = currentTask.value.pickup_lat
-  const pickLng = currentTask.value.pickup_lng
+  const dropLat = Number(currentTask.value.dropoff_lat)
+  const dropLng = Number(currentTask.value.dropoff_lng)
+  const pickLat = Number(currentTask.value.pickup_lat)
+  const pickLng = Number(currentTask.value.pickup_lng)
 
-  const lat = dropLat ?? pickLat
-  const lng = dropLng ?? pickLng
-  if (lat == null || lng == null) return
+  const lat = dropLat || pickLat || 0
+  const lng = dropLng || pickLng || 0
+  if (!lat || !lng) return
 
-  const maps = await loadGoogleMapsScript(mapApiKey.value)
-  const center = { lat: Number(lat), lng: Number(lng) }
+  if (mapProvider.value === 'Google Maps' && mapApiKey.value) {
+    try {
+      const maps = await loadGoogleMapsScript(mapApiKey.value)
+      const center = { lat, lng }
 
-  if (!mapInstance) {
-    mapInstance = new maps.Map(mapContainer.value, {
-      center,
-      zoom: 17,
-      mapTypeId: 'roadmap',
-      disableDefaultUI: true,
-      gestureHandling: 'greedy',
-    })
-  } else {
-    mapInstance.setCenter(center)
-  }
+      if (!mapInstance || typeof mapInstance.setCenter !== 'function') {
+        mapContainer.value.innerHTML = ''
+        mapInstance = new maps.Map(mapContainer.value, {
+          center,
+          zoom: 16,
+          mapTypeId: 'roadmap',
+          disableDefaultUI: true,
+          gestureHandling: 'greedy',
+        })
+      } else {
+        mapInstance.setCenter(center)
+      }
 
-  if (!mapMarker) {
-    mapMarker = new maps.Marker({
-      position: center,
-      map: mapInstance,
-    })
-  } else {
-    mapMarker.setPosition(center)
-  }
+      if (!mapMarker || typeof mapMarker.setPosition !== 'function') {
+        mapMarker = new maps.Marker({
+          position: center,
+          map: mapInstance,
+        })
+      } else {
+        mapMarker.setPosition(center)
+      }
 
-  if (dropLat != null && dropLng != null && pickLat != null && pickLng != null) {
-    const bounds = new maps.LatLngBounds()
-    bounds.extend({ lat: Number(dropLat), lng: Number(dropLng) })
-    bounds.extend({ lat: Number(pickLat), lng: Number(pickLng) })
-    const latDiff = Math.abs(Number(dropLat) - Number(pickLat))
-    const lngDiff = Math.abs(Number(dropLng) - Number(pickLng))
-    const isClose = latDiff < 0.01 && lngDiff < 0.01
-    if (isClose) {
-      mapInstance.setCenter(center)
-      mapInstance.setZoom(17)
-    } else {
-      mapInstance.fitBounds(bounds, 24)
-      maps.event.addListenerOnce(mapInstance, 'bounds_changed', () => {
-        const currentZoom = mapInstance.getZoom()
-        if (currentZoom && currentZoom > 16) {
-          mapInstance.setZoom(16)
+      maps.event.trigger(mapInstance, 'resize')
+      setTimeout(() => {
+        if (mapInstance && typeof mapInstance.setCenter === 'function') {
+          mapInstance.setCenter(center)
         }
-      })
+      }, 120)
+      return
+    } catch (e) {
+      console.warn('Google maps script failed, falling back to Leaflet:', e)
     }
-  } else {
-    mapInstance.setZoom(17)
   }
 
-  maps.event.trigger(mapInstance, 'resize')
-  setTimeout(() => {
-    mapInstance.setCenter(center)
-    mapInstance.setZoom(mapInstance.getZoom() || 17)
-  }, 120)
+  // Fallback to Leaflet / OpenStreetMap
+  try {
+    const L = await loadLeafletScript()
+    if (!mapInstance || typeof mapInstance.setView !== 'function') {
+      mapContainer.value.innerHTML = ''
+      mapInstance = L.map(mapContainer.value, {
+        zoomControl: false,
+        attributionControl: false,
+      }).setView([lat, lng], 15)
+
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+      }).addTo(mapInstance)
+
+      mapMarker = L.marker([lat, lng]).addTo(mapInstance)
+    } else {
+      mapInstance.setView([lat, lng], 15)
+      if (mapMarker && typeof mapMarker.setLatLng === 'function') {
+        mapMarker.setLatLng([lat, lng])
+      }
+    }
+    setTimeout(() => {
+      if (mapInstance && typeof mapInstance.invalidateSize === 'function') {
+        mapInstance.invalidateSize()
+      }
+    }, 120)
+  } catch (e) {
+    console.error('Map init error:', e)
+  }
 }
 </script>
 
