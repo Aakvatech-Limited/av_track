@@ -13,7 +13,7 @@ def fetch_google_driving_distance(lat1, lng1, lat2, lng2):
         return 0.0
 
     try:
-        api_key = frappe.db.get_single_value("Track Settings", "map_api_key")
+        api_key = frappe.get_doc("Track Settings").get_password("map_api_key")
         if not api_key:
             return 0.0
 
