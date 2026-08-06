@@ -106,13 +106,20 @@
                 <p class="text-slate-400 text-[10px] uppercase font-bold">ETA</p>
               </div>
             </div>
-            <div class="flex items-center gap-2 py-2 border-t border-slate-200">
-              <svg class="h-5 w-5 text-slate-400" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
-              </svg>
-              <p class="text-slate-600 text-sm font-medium">
-                Customer: {{ currentTask.customer_name || '—' }}
-              </p>
+            <div class="flex items-center justify-between py-2 border-t border-slate-200">
+              <div class="flex items-center gap-2">
+                <svg class="h-5 w-5 text-slate-400" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+                </svg>
+                <div>
+                  <p class="text-slate-600 text-sm font-medium">
+                    Customer: {{ currentTask.customer_name || '—' }}
+                  </p>
+                  <p v-if="currentTask.customer_phone" class="text-xs text-slate-500 font-semibold flex items-center gap-1 mt-0.5">
+                    <span>📞</span> {{ currentTask.customer_phone }}
+                  </p>
+                </div>
+              </div>
             </div>
             <div class="flex gap-2 mt-3">
               <router-link
@@ -138,29 +145,31 @@
 
         <!-- Upcoming Stops -->
         <h2 class="text-xl font-bold mt-6 mb-3">Upcoming Stops</h2>
-        <div v-if="upcomingStops.length" class="space-y-3 pb-8">
-          <button
+        <div v-if="upcomingStops.length > 0" class="space-y-3">
+          <div
             v-for="stop in upcomingStops"
             :key="stop.id"
-            type="button"
-            class="flex w-full items-center gap-4 rounded-lg border border-slate-200 bg-white p-3 text-left shadow-[0_10px_28px_rgba(15,23,42,0.08)] transition hover:border-blue-200 hover:shadow-[0_14px_32px_rgba(15,23,42,0.12)]"
+            class="flex items-center justify-between rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition active:scale-[0.99]"
             @click="openStopSheet(stop)"
           >
-            <div class="flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 text-slate-500 font-bold">
-              {{ stop.id }}
+            <div class="flex items-center gap-3">
+              <div class="flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 text-sm font-bold text-slate-700">
+                #{{ stop.id }}
+              </div>
+              <div>
+                <p class="font-bold text-slate-900 text-sm">{{ stop.address }}</p>
+                <p class="text-xs text-slate-500 font-medium mt-0.5">
+                  {{ stop.customer_name }}
+                  <span v-if="stop.customer_phone" class="ml-1 text-slate-400">({{ stop.customer_phone }})</span>
+                </p>
+              </div>
             </div>
-            <div class="flex-1">
-              <p class="text-sm font-bold">{{ stop.address }}</p>
-              <p class="text-slate-500 text-xs">{{ formatStopMeta(stop) }}</p>
-            </div>
-            <svg class="h-5 w-5 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M4 6h16M4 12h16M4 18h16" />
-            </svg>
-          </button>
+            <span class="rounded-full bg-blue-50 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-blue-600">
+              {{ stop.status || 'Pending' }}
+            </span>
+          </div>
         </div>
-        <div v-else class="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-6 text-center text-sm text-slate-500 shadow-[0_14px_36px_rgba(15,23,42,0.08)]">
-          No upcoming stops right now.
-        </div>
+        <div v-else class="text-xs text-slate-400 italic">No upcoming stops queued.</div>
 
         <!-- Bottom Nav -->
         <DriverBottomNav />
@@ -188,8 +197,6 @@
             <div class="flex-1">
               <div class="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-slate-400">
                 <span>Stop #{{ selectedStop?.id }}</span>
-                <span class="h-1 w-1 rounded-full bg-slate-300"></span>
-                <span class="text-blue-600">In 2.4 miles</span>
               </div>
               <h3 class="mt-2 text-xl font-bold text-slate-900">{{ selectedStop?.address }}</h3>
               <p class="mt-1 text-sm text-slate-500">
@@ -215,8 +222,8 @@
               <p class="mt-1 text-sm font-semibold text-slate-900">{{ selectedStop?.customer_name || '—' }}</p>
             </div>
             <div class="rounded-xl border border-slate-100 bg-slate-50 p-3">
-              <p class="text-[10px] font-bold uppercase tracking-widest text-slate-400">Est. Window</p>
-              <p class="mt-1 text-sm font-semibold text-slate-900">2:15 PM - 2:45 PM</p>
+              <p class="text-[10px] font-bold uppercase tracking-widest text-slate-400">Phone</p>
+              <p class="mt-1 text-sm font-semibold text-slate-900">{{ selectedStop?.customer_phone || '—' }}</p>
             </div>
           </div>
           <div class="rounded-xl border border-blue-100 bg-blue-50 p-4">

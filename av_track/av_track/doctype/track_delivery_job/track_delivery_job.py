@@ -43,10 +43,22 @@ def fetch_google_driving_distance(lat1, lng1, lat2, lng2):
 
 class TrackDeliveryJob(Document):
     def validate(self):
+        self._sync_customer_phone()
         self._sync_pickup_coordinates()
         self._sync_driver_assignment_status()
         self._set_status_timestamps()
         self._sync_distances()
+
+    def _sync_customer_phone(self):
+        if not self.customer_phone and self.source_doctype and self.source_docname:
+            try:
+                from av_track.track_job import _fetch_customer_phone
+                source_doc = frappe.get_doc(self.source_doctype, self.source_docname)
+                phone = _fetch_customer_phone(source_doc)
+                if phone:
+                    self.customer_phone = phone
+            except Exception:
+                pass
 
     def on_update(self):
         if self.has_value_changed("assigned_driver") and self.assigned_driver:

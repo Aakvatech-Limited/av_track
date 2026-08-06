@@ -1,0 +1,1 @@
+import{_ as t,o as l,j as o,a as e,D as c}from"./index-DGwNk4vc.js";const a={},n={class:"min-h-[100dvh] bg-white lg:flex lg:items-stretch"},r={class:"min-h-[100dvh] w-full px-6 py-8 lg:px-12 lg:py-12"},_={class:"w-full lg:w-[420px]"};function d(s,i){return l(),o("div",n,[e("div",r,[e("div",_,[c(s.$slots,"default")])])])}const f=t(a,[["render",d]]);export{f as B};
