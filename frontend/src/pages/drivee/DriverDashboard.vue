@@ -516,14 +516,9 @@ const loadGoogleMapsScript = (key) => {
 }
 
 const initMap = async () => {
-  if (!mapContainer.value || !currentTask.value) return
-  if (!mapApiKey.value) return
+  if (!currentTask.value) return
 
-  const container = mapContainer.value
-  if (!container.clientWidth || !container.clientHeight) {
-    setTimeout(() => initMap(), 150)
-    return
-  }
+  await nextTick()
 
   const dropLat = Number(currentTask.value.dropoff_lat)
   const dropLng = Number(currentTask.value.dropoff_lng)
@@ -534,8 +529,27 @@ const initMap = async () => {
   const lng = dropLng || pickLng || 0
   if (!lat || !lng) return
 
+  let key = mapApiKey.value
+  if (!key) {
+    try {
+      const { getDriverDashboard } = await import('@/utils/auth')
+      const data = await getDriverDashboard()
+      if (data?.map?.api_key) {
+        key = data.map.api_key
+        mapApiKey.value = key
+      }
+    } catch (e) {}
+  }
+  if (!key) return
+
   try {
-    const maps = await loadGoogleMapsScript(mapApiKey.value)
+    const maps = await loadGoogleMapsScript(key)
+
+    if (!mapContainer.value) {
+      setTimeout(() => initMap(), 150)
+      return
+    }
+
     const center = { lat, lng }
 
     if (!mapInstance || typeof mapInstance.setCenter !== 'function') {
@@ -555,6 +569,7 @@ const initMap = async () => {
       mapMarker = new maps.Marker({
         position: center,
         map: mapInstance,
+        title: currentTask.value.customer_name || 'Delivery Destination'
       })
     } else {
       mapMarker.setPosition(center)
@@ -563,9 +578,16 @@ const initMap = async () => {
     maps.event.trigger(mapInstance, 'resize')
     setTimeout(() => {
       if (mapInstance && typeof mapInstance.setCenter === 'function') {
+        maps.event.trigger(mapInstance, 'resize')
         mapInstance.setCenter(center)
       }
-    }, 120)
+    }, 100)
+    setTimeout(() => {
+      if (mapInstance && typeof mapInstance.setCenter === 'function') {
+        maps.event.trigger(mapInstance, 'resize')
+        mapInstance.setCenter(center)
+      }
+    }, 400)
   } catch (e) {
     console.warn('Google Maps initialization failed:', e)
   }
