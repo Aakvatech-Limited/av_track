@@ -176,3 +176,18 @@ export const postLocationPing = async (payload = {}) => {
   })
   return data.message
 }
+
+export const logDeliveryDelay = async (jobId, reason, notes = '') => {
+  const data = await request('/api/method/av_track.api.log_delivery_delay', {
+    method: 'POST',
+    headers: withCsrf({
+      'Content-Type': 'application/x-www-form-urlencoded',
+    }),
+    body: buildFormBody({
+      job_id: jobId,
+      reason,
+      notes,
+    }),
+  })
+  return data.message
+}
