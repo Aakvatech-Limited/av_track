@@ -56,7 +56,7 @@ export default defineConfig({
     }),
   ],
   server: {
-    allowedHosts: ['dev-15-new'],
+    allowedHosts: true,
   },
   resolve: {
     alias: {
