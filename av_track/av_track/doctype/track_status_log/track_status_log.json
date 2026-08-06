@@ -44,7 +44,7 @@
    "fieldtype": "Select",
    "in_list_view": 1,
    "label": "Status",
-   "options": "Assigned\nPicked Up\nEn Route\nDelivered\nFailed",
+   "options": "Assigned\nAccepted\nEn Route to Pickup\nPicked Up\nEn Route to Delivery\nEn Route\nDelivered\nFailed",
    "reqd": 1
   },
   {
