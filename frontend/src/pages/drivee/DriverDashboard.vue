@@ -80,8 +80,9 @@
           <div class="relative h-44 overflow-hidden rounded-t-xl">
             <div
               ref="mapContainer"
-              class="absolute inset-0 z-10 h-full w-full"
+              class="absolute inset-0 z-0 h-full w-full"
             ></div>
+            <div v-if="!hasMap" class="pointer-events-none absolute inset-0 z-10 bg-gradient-to-br from-slate-200 to-slate-300"></div>
             <div class="pointer-events-none absolute inset-0 z-20 bg-gradient-to-t from-black/40 via-transparent to-transparent"></div>
             <div class="pointer-events-none absolute bottom-3 left-4 z-30 flex items-center gap-2">
               <span class="inline-flex h-6 w-6 items-center justify-center rounded-full bg-white text-blue-500">
@@ -292,7 +293,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted, nextTick } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import { io } from 'socket.io-client'
 import DriverBottomNav from '@/components/DriverBottomNav.vue'
 import InfoDialog from '@/components/InfoDialog.vue'
@@ -318,6 +319,7 @@ const upcomingStops = ref([])
 const mapProvider = ref('')
 const mapApiKey = ref('')
 const mapContainer = ref(null)
+const hasMap = ref(false)
 let mapInstance = null
 let mapMarker = null
 
@@ -493,9 +495,19 @@ onMounted(() => {
   }
 })
 
-watch([currentTask, mapApiKey, mapProvider], () => {
-  initMap()
+onUnmounted(() => {
+  // Reset map state so next mount creates a fresh instance in the new DOM container
+  mapInstance = null
+  mapMarker = null
+  hasMap.value = false
+  isInitializingMap = false
+  if (resizeObserver) {
+    resizeObserver.disconnect()
+    resizeObserver = null
+  }
 })
+
+// No watch needed — initMap is called directly from loadDriverDashboard after all data is ready.
 
 const loadGoogleMapsScript = (key) => {
   if (!key) return Promise.reject(new Error('Missing Google Maps API key'))
@@ -519,67 +531,45 @@ let resizeObserver = null
 
 const initMap = async () => {
   if (!currentTask.value) return
+  if (!mapApiKey.value) return
 
-  await nextTick()
+  const rawLat = currentTask.value.dropoff_lat ?? currentTask.value.pickup_lat
+  const rawLng = currentTask.value.dropoff_lng ?? currentTask.value.pickup_lng
+  if (rawLat == null || rawLng == null) return
 
-  const container = mapContainer.value
-  if (!container || container.offsetWidth === 0 || container.offsetHeight === 0) {
-    setTimeout(() => initMap(), 100)
-    return
-  }
-
-  const dropLat = Number(currentTask.value.dropoff_lat)
-  const dropLng = Number(currentTask.value.dropoff_lng)
-  const pickLat = Number(currentTask.value.pickup_lat)
-  const pickLng = Number(currentTask.value.pickup_lng)
-
-  const lat = dropLat || pickLat
-  const lng = dropLng || pickLng
+  const lat = Number(rawLat)
+  const lng = Number(rawLng)
   if (!lat || !lng) return
 
-  let key = mapApiKey.value
-  if (!key) {
-    try {
-      const { getDriverDashboard } = await import('@/utils/auth')
-      const data = await getDriverDashboard()
-      if (data?.map?.api_key) {
-        key = data.map.api_key
-        mapApiKey.value = key
-      }
-    } catch (e) {}
-  }
-  if (!key) return
+  const container = mapContainer.value
+  if (!container) return
 
   try {
-    const maps = await loadGoogleMapsScript(key)
+    const maps = await loadGoogleMapsScript(mapApiKey.value)
     const center = { lat, lng }
 
-    if (!mapInstance || typeof mapInstance.setCenter !== 'function') {
-      container.innerHTML = ''
-      mapInstance = new maps.Map(container, {
-        center,
-        zoom: 16,
-        mapTypeId: 'roadmap',
-        disableDefaultUI: true,
-        gestureHandling: 'greedy',
-      })
-    } else {
-      mapInstance.setCenter(center)
-    }
+    // Always re-create the map so it binds to the current DOM container.
+    // Reusing a stale mapInstance from a previous route will leave the map blank.
+    if (mapMarker) { mapMarker.setMap(null); mapMarker = null }
+    container.innerHTML = ''
+    mapInstance = new maps.Map(container, {
+      center,
+      zoom: 16,
+      mapTypeId: 'roadmap',
+      disableDefaultUI: true,
+      gestureHandling: 'greedy',
+    })
 
-    if (!mapMarker || typeof mapMarker.setPosition !== 'function') {
-      mapMarker = new maps.Marker({
-        position: center,
-        map: mapInstance,
-        title: currentTask.value.customer_name || 'Delivery Destination'
-      })
-    } else {
-      mapMarker.setPosition(center)
-    }
+    mapMarker = new maps.Marker({
+      position: center,
+      map: mapInstance,
+      title: currentTask.value.customer_name || 'Delivery'
+    })
 
-    if (window.ResizeObserver && !resizeObserver) {
+    if (window.ResizeObserver) {
+      if (resizeObserver) resizeObserver.disconnect()
       resizeObserver = new ResizeObserver(() => {
-        if (mapInstance && window.google?.maps) {
+        if (mapInstance) {
           window.google.maps.event.trigger(mapInstance, 'resize')
           mapInstance.setCenter(center)
         }
@@ -587,21 +577,16 @@ const initMap = async () => {
       resizeObserver.observe(container)
     }
 
+    hasMap.value = true
     maps.event.trigger(mapInstance, 'resize')
     setTimeout(() => {
-      if (mapInstance && typeof mapInstance.setCenter === 'function') {
+      if (mapInstance) {
         maps.event.trigger(mapInstance, 'resize')
         mapInstance.setCenter(center)
       }
-    }, 150)
-    setTimeout(() => {
-      if (mapInstance && typeof mapInstance.setCenter === 'function') {
-        maps.event.trigger(mapInstance, 'resize')
-        mapInstance.setCenter(center)
-      }
-    }, 500)
+    }, 300)
   } catch (e) {
-    console.warn('Google Maps initialization failed:', e)
+    console.warn('initMap error:', e)
   }
 }
 </script>
