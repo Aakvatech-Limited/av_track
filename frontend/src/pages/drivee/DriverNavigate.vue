@@ -106,6 +106,17 @@
                 </svg>
                 Arrived
               </router-link>
+              <button
+                type="button"
+                @click="showDelayModal = true"
+                class="flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-50 text-amber-600 border border-amber-200 transition active:scale-95"
+                title="Report Delay"
+              >
+                <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="10"/>
+                  <path d="M12 6v6l4 2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </button>
               <button class="flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-100 text-slate-700 transition active:scale-95">
                 <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <path d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" stroke-linecap="round" stroke-linejoin="round" />
@@ -118,13 +129,88 @@
         <div class="pointer-events-none absolute bottom-3 left-1/2 z-30 h-1 w-32 -translate-x-1/2 rounded-full bg-slate-300"></div>
       </div>
     </div>
+
+    <!-- Report Delay Modal -->
+    <transition name="fade">
+      <div v-if="showDelayModal" class="fixed inset-0 z-40 bg-slate-900/40 backdrop-blur-sm" @click="showDelayModal = false"></div>
+    </transition>
+    <transition name="sheet">
+      <div v-if="showDelayModal" class="fixed inset-x-0 bottom-0 z-50 flex max-h-[92%] w-full flex-col overflow-hidden rounded-t-[32px] bg-white p-6 shadow-2xl lg:ml-12 lg:mr-auto lg:max-w-[420px]">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-xl font-bold text-slate-900">Report Delivery Delay</h3>
+          <button @click="showDelayModal = false" class="rounded-full bg-slate-100 p-2 text-slate-500">
+            <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M18 6L6 18M6 6l12 12" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+        </div>
+        
+        <p class="text-xs font-semibold text-slate-500 mb-2">Select reason for delay:</p>
+        <div class="grid grid-cols-2 gap-2 mb-4">
+          <button
+            v-for="reason in delayReasons"
+            :key="reason"
+            type="button"
+            @click="selectedDelayReason = reason"
+            class="rounded-xl border px-3 py-2.5 text-xs font-semibold transition text-left"
+            :class="selectedDelayReason === reason ? 'border-amber-500 bg-amber-50 text-amber-700 font-bold' : 'border-slate-200 bg-slate-50 text-slate-700'"
+          >
+            {{ reason }}
+          </button>
+        </div>
+        
+        <label class="text-xs font-medium text-slate-500 mb-1">Additional Notes (Optional)</label>
+        <textarea
+          v-model="delayNotes"
+          rows="2"
+          placeholder="Explain cause of delay..."
+          class="w-full rounded-xl border border-slate-200 p-3 text-sm focus:border-amber-500 focus:outline-none mb-4"
+        ></textarea>
+
+        <div class="flex gap-3">
+          <button @click="showDelayModal = false" class="flex-1 rounded-xl bg-slate-100 py-3 text-sm font-bold text-slate-700">Cancel</button>
+          <button @click="submitDelay" :disabled="!selectedDelayReason || isSubmittingDelay" class="flex-1 rounded-xl bg-amber-500 py-3 text-sm font-bold text-white shadow-lg shadow-amber-500/20 disabled:opacity-50">
+            {{ isSubmittingDelay ? 'Submitting...' : 'Submit Delay' }}
+          </button>
+        </div>
+      </div>
+    </transition>
   </div>
 </template>
 
 <script setup>
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
-import { getDriverDashboard, postLocationPing } from '@/utils/auth'
+import { getDriverDashboard, postLocationPing, logDeliveryDelay } from '@/utils/auth'
+
+const showDelayModal = ref(false)
+const selectedDelayReason = ref('')
+const delayNotes = ref('')
+const isSubmittingDelay = ref(false)
+const delayReasons = [
+  'Traffic Congestion',
+  'Vehicle Breakdown',
+  'Store Delay',
+  'Customer Not In Place',
+  'Weather Conditions',
+  'Other'
+]
+
+const submitDelay = async () => {
+  if (!currentTask.value?.name || !selectedDelayReason.value) return
+  isSubmittingDelay.value = true
+  try {
+    await logDeliveryDelay(currentTask.value.name, selectedDelayReason.value, delayNotes.value)
+    showDelayModal.value = false
+    selectedDelayReason.value = ''
+    delayNotes.value = ''
+    alert('Delay report submitted successfully to dispatch.')
+  } catch (err) {
+    alert('Failed to report delay: ' + (err.message || 'Unknown error'))
+  } finally {
+    isSubmittingDelay.value = false
+  }
+}
 
 const route = useRoute()
 const mapContainer = ref(null)
@@ -226,12 +312,35 @@ const getCurrentPosition = () =>
     )
   })
 
+let driverMarker = null
+
 const sendLocationPing = async () => {
   const jobId = currentTask.value?.name
   if (!jobId) return
 
   const position = await getCurrentPosition()
   if (position.lat == null || position.lng == null) return
+
+  if (mapInstance && window.google?.maps) {
+    const driverPos = { lat: Number(position.lat), lng: Number(position.lng) }
+    if (!driverMarker) {
+      driverMarker = new window.google.maps.Marker({
+        position: driverPos,
+        map: mapInstance,
+        title: 'Driver Current Location',
+        icon: {
+          path: window.google.maps.SymbolPath.FORWARD_CLOSED_ARROW,
+          scale: 6,
+          fillColor: '#1d4ed8',
+          fillOpacity: 1,
+          strokeWeight: 2,
+          strokeColor: '#ffffff',
+        },
+      })
+    } else {
+      driverMarker.setPosition(driverPos)
+    }
+  }
 
   try {
     await postLocationPing({

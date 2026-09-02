@@ -61,15 +61,17 @@ def _enforce_single_en_route_job(driver_id, current_job_name, next_status):
 
 
 def _validate_status_transition(current_status, new_status):
-    if current_status == new_status:
+    if not current_status:
         return
 
     allowed = {
-        "": {"Assigned"},
-        None: {"Assigned"},
-        "Assigned": {"Picked Up", "En Route", "Failed"},
-        "Picked Up": {"En Route", "Failed"},
-        "En Route": {"Delivered", "Failed"},
+        "": {"Assigned", "Accepted", "En Route to Pickup", "En Route", "Picked Up", "En Route to Delivery", "Delivered", "Failed"},
+        "Assigned": {"Accepted", "En Route to Pickup", "Picked Up", "En Route to Delivery", "En Route", "Failed"},
+        "Accepted": {"En Route to Pickup", "Picked Up", "En Route to Delivery", "En Route", "Failed"},
+        "En Route to Pickup": {"Picked Up", "En Route to Delivery", "En Route", "Failed"},
+        "Picked Up": {"En Route to Delivery", "En Route", "Delivered", "Failed"},
+        "En Route to Delivery": {"Delivered", "Failed"},
+        "En Route": {"En Route to Delivery", "Delivered", "Failed"},
         "Delivered": set(),
         "Failed": set(),
     }
@@ -117,13 +119,34 @@ def _notify_driver_realtime(driver_id, event, message):
     )
     for acc in accounts:
         user = acc.get("user")
-        if user:
+        if user and frappe.db.exists("User", user):
+            try:
+                subject = message.get("title") if isinstance(message, dict) else str(message)
+                if not subject:
+                    subject = "New Delivery Job Update"
+                frappe.get_doc({
+                    "doctype": "Notification Log",
+                    "for_user": user,
+                    "subject": subject,
+                    "document_type": "Track Delivery Job",
+                    "document_name": message.get("job") if isinstance(message, dict) else None,
+                    "type": "Alert"
+                }).insert(ignore_permissions=True)
+            except Exception:
+                pass
+
             frappe.publish_realtime(
                 event=event,
                 message=message,
                 user=user,
                 after_commit=True
             )
+
+    frappe.publish_realtime(
+        event=event,
+        message=message,
+        after_commit=True
+    )
 
 
 def _broadcast_job_status_update(job):
@@ -269,7 +292,7 @@ def get_driver_dashboard():
         "Track Delivery Job",
         filters={
             "assigned_driver": driver_id,
-            "status": "En Route",
+            "status": ["in", ["En Route to Pickup", "En Route to Delivery", "En Route"]],
         },
         fields=[
             "name",
@@ -297,7 +320,7 @@ def get_driver_dashboard():
         "Track Delivery Job",
         filters={
             "assigned_driver": driver_id,
-            "status": ["in", ["Assigned", "Picked Up"]],
+            "status": ["in", ["Assigned", "Accepted", "Picked Up"]],
         },
         fields=[
             "name",
@@ -496,8 +519,53 @@ def upload_pod(
         lat=lat,
         lng=lng,
     )
-
     return {"name": pod.name}
+
+
+@frappe.whitelist()
+def update_delivery_address(job_id, address, lat=None, lng=None):
+    if not job_id:
+        frappe.throw("Job ID is required.")
+
+    job = frappe.get_doc("Track Delivery Job", job_id)
+    if address:
+        job.dropoff_address = address
+    if lat is not None:
+        job.dropoff_lat = flt(lat)
+    if lng is not None:
+        job.dropoff_lng = flt(lng)
+
+    job.save(ignore_permissions=True)
+    _broadcast_job_status_update(job)
+
+    return {
+        "status": "success",
+        "message": "Delivery location updated",
+        "dropoff_address": job.dropoff_address,
+        "dropoff_lat": job.dropoff_lat,
+        "dropoff_lng": job.dropoff_lng,
+    }
+
+
+@frappe.whitelist()
+def log_delivery_delay(job_id, reason, notes=None):
+    if not job_id:
+        frappe.throw("Job ID is required.")
+
+    job = frappe.get_doc("Track Delivery Job", job_id)
+    job.delay_reason = reason
+    if notes:
+        job.delay_notes = notes
+
+    job.save(ignore_permissions=True)
+    _broadcast_job_status_update(job)
+
+    return {
+        "status": "success",
+        "message": "Delay logged successfully",
+        "delay_reason": job.delay_reason,
+        "delay_notes": job.delay_notes,
+    }
 
 
 @frappe.whitelist()

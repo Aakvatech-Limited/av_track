@@ -77,14 +77,14 @@
           </span>
         </div>
         <div v-if="currentTask" class="rounded-xl overflow-hidden bg-white border border-slate-200 shadow-[0_18px_45px_rgba(15,23,42,0.1)]">
-          <div class="relative h-44">
+          <div class="relative h-44 overflow-hidden rounded-t-xl">
             <div
               ref="mapContainer"
               class="absolute inset-0 z-0 h-full w-full"
             ></div>
-            <div class="absolute inset-0 z-10 bg-gradient-to-br from-slate-200 to-slate-300 opacity-20"></div>
-            <div class="absolute inset-0 z-20 bg-gradient-to-t from-black/30 to-transparent"></div>
-            <div class="absolute bottom-3 left-4 flex items-center gap-2">
+            <div v-if="!hasMap" class="pointer-events-none absolute inset-0 z-10 bg-gradient-to-br from-slate-200 to-slate-300"></div>
+            <div class="pointer-events-none absolute inset-0 z-20 bg-gradient-to-t from-black/40 via-transparent to-transparent"></div>
+            <div class="pointer-events-none absolute bottom-3 left-4 z-30 flex items-center gap-2">
               <span class="inline-flex h-6 w-6 items-center justify-center rounded-full bg-white text-blue-500">
                 <svg class="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
                   <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
@@ -106,13 +106,20 @@
                 <p class="text-slate-400 text-[10px] uppercase font-bold">ETA</p>
               </div>
             </div>
-            <div class="flex items-center gap-2 py-2 border-t border-slate-200">
-              <svg class="h-5 w-5 text-slate-400" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
-              </svg>
-              <p class="text-slate-600 text-sm font-medium">
-                Customer: {{ currentTask.customer_name || '—' }}
-              </p>
+            <div class="flex items-center justify-between py-2 border-t border-slate-200">
+              <div class="flex items-center gap-2">
+                <svg class="h-5 w-5 text-slate-400" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+                </svg>
+                <div>
+                  <p class="text-slate-600 text-sm font-medium">
+                    Customer: {{ currentTask.customer_name || '—' }}
+                  </p>
+                  <p v-if="currentTask.customer_phone" class="text-xs text-slate-500 font-semibold flex items-center gap-1 mt-0.5">
+                    <span>📞</span> {{ currentTask.customer_phone }}
+                  </p>
+                </div>
+              </div>
             </div>
             <div class="flex gap-2 mt-3">
               <router-link
@@ -138,29 +145,31 @@
 
         <!-- Upcoming Stops -->
         <h2 class="text-xl font-bold mt-6 mb-3">Upcoming Stops</h2>
-        <div v-if="upcomingStops.length" class="space-y-3 pb-8">
-          <button
+        <div v-if="upcomingStops.length > 0" class="space-y-3">
+          <div
             v-for="stop in upcomingStops"
             :key="stop.id"
-            type="button"
-            class="flex w-full items-center gap-4 rounded-lg border border-slate-200 bg-white p-3 text-left shadow-[0_10px_28px_rgba(15,23,42,0.08)] transition hover:border-blue-200 hover:shadow-[0_14px_32px_rgba(15,23,42,0.12)]"
+            class="flex items-center justify-between rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition active:scale-[0.99]"
             @click="openStopSheet(stop)"
           >
-            <div class="flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 text-slate-500 font-bold">
-              {{ stop.id }}
+            <div class="flex items-center gap-3">
+              <div class="flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 text-sm font-bold text-slate-700">
+                #{{ stop.id }}
+              </div>
+              <div>
+                <p class="font-bold text-slate-900 text-sm">{{ stop.address }}</p>
+                <p class="text-xs text-slate-500 font-medium mt-0.5">
+                  {{ stop.customer_name }}
+                  <span v-if="stop.customer_phone" class="ml-1 text-slate-400">({{ stop.customer_phone }})</span>
+                </p>
+              </div>
             </div>
-            <div class="flex-1">
-              <p class="text-sm font-bold">{{ stop.address }}</p>
-              <p class="text-slate-500 text-xs">{{ formatStopMeta(stop) }}</p>
-            </div>
-            <svg class="h-5 w-5 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M4 6h16M4 12h16M4 18h16" />
-            </svg>
-          </button>
+            <span class="rounded-full bg-blue-50 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-blue-600">
+              {{ stop.status || 'Pending' }}
+            </span>
+          </div>
         </div>
-        <div v-else class="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-6 text-center text-sm text-slate-500 shadow-[0_14px_36px_rgba(15,23,42,0.08)]">
-          No upcoming stops right now.
-        </div>
+        <div v-else class="text-xs text-slate-400 italic">No upcoming stops queued.</div>
 
         <!-- Bottom Nav -->
         <DriverBottomNav />
@@ -188,8 +197,6 @@
             <div class="flex-1">
               <div class="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-slate-400">
                 <span>Stop #{{ selectedStop?.id }}</span>
-                <span class="h-1 w-1 rounded-full bg-slate-300"></span>
-                <span class="text-blue-600">In 2.4 miles</span>
               </div>
               <h3 class="mt-2 text-xl font-bold text-slate-900">{{ selectedStop?.address }}</h3>
               <p class="mt-1 text-sm text-slate-500">
@@ -215,8 +222,8 @@
               <p class="mt-1 text-sm font-semibold text-slate-900">{{ selectedStop?.customer_name || '—' }}</p>
             </div>
             <div class="rounded-xl border border-slate-100 bg-slate-50 p-3">
-              <p class="text-[10px] font-bold uppercase tracking-widest text-slate-400">Est. Window</p>
-              <p class="mt-1 text-sm font-semibold text-slate-900">2:15 PM - 2:45 PM</p>
+              <p class="text-[10px] font-bold uppercase tracking-widest text-slate-400">Phone</p>
+              <p class="mt-1 text-sm font-semibold text-slate-900">{{ selectedStop?.customer_phone || '—' }}</p>
             </div>
           </div>
           <div class="rounded-xl border border-blue-100 bg-blue-50 p-4">
@@ -286,7 +293,8 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted, nextTick } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
+import { io } from 'socket.io-client'
 import DriverBottomNav from '@/components/DriverBottomNav.vue'
 import InfoDialog from '@/components/InfoDialog.vue'
 
@@ -311,6 +319,7 @@ const upcomingStops = ref([])
 const mapProvider = ref('')
 const mapApiKey = ref('')
 const mapContainer = ref(null)
+const hasMap = ref(false)
 let mapInstance = null
 let mapMarker = null
 
@@ -388,11 +397,19 @@ const setAsCurrentTask = async () => {
   isSettingCurrentTask.value = true
   try {
     const { updateJobStatus } = await import('@/utils/auth')
-    await updateJobStatus(selectedStop.value.jobName, 'En Route')
+    const currentStatus = selectedStop.value.status || ''
+    let targetStatus = 'En Route to Pickup'
+    if (currentStatus === 'Picked Up') {
+      targetStatus = 'En Route to Delivery'
+    } else if (currentStatus === 'En Route' || currentStatus === 'En Route to Delivery' || currentStatus === 'En Route to Pickup') {
+      targetStatus = currentStatus
+    }
+
+    await updateJobStatus(selectedStop.value.jobName, targetStatus)
     closeStopSheet()
     await loadDriverDashboard()
   } catch (error) {
-    showDialog('Could Not Update Task', 'Failed to set this stop as current task.', 'error')
+    showDialog('Could Not Update Task', error.message || 'Failed to set this stop as current task.', 'error')
   } finally {
     isSettingCurrentTask.value = false
   }
@@ -455,14 +472,45 @@ const loadDriverDashboard = async () => {
 
 onMounted(() => {
   loadDriverDashboard()
+
+  const host = window.location.hostname
+  const port = window.location.port === '8080' ? ':9001' : (window.location.port ? `:${window.location.port}` : '')
+  const protocol = window.location.protocol || 'http:'
+  const url = `${protocol}//${host}${port}/${host}`
+
+  try {
+    const socket = io(url, { withCredentials: true, reconnectionAttempts: 5 })
+    socket.on('new_delivery_job', () => {
+      loadDriverDashboard()
+      showDialog('New Job Assigned', 'A new delivery job has been assigned to you!', 'info')
+    })
+    socket.on('delivery_job_status_updated', () => {
+      loadDriverDashboard()
+    })
+  } catch (e) {}
+
+  if (window.frappe?.realtime) {
+    window.frappe.realtime.on('new_delivery_job', () => loadDriverDashboard())
+    window.frappe.realtime.on('delivery_job_status_updated', () => loadDriverDashboard())
+  }
 })
 
-watch([currentTask, mapApiKey, mapProvider], () => {
-  initMap()
+onUnmounted(() => {
+  // Reset map state so next mount creates a fresh instance in the new DOM container
+  mapInstance = null
+  mapMarker = null
+  hasMap.value = false
+  isInitializingMap = false
+  if (resizeObserver) {
+    resizeObserver.disconnect()
+    resizeObserver = null
+  }
 })
+
+// No watch needed — initMap is called directly from loadDriverDashboard after all data is ready.
 
 const loadGoogleMapsScript = (key) => {
-  if (!key) return Promise.reject(new Error('Missing map key'))
+  if (!key) return Promise.reject(new Error('Missing Google Maps API key'))
   if (window.google?.maps) return Promise.resolve(window.google.maps)
   if (window.__avTrackGoogleMapsPromise) return window.__avTrackGoogleMapsPromise
 
@@ -479,78 +527,67 @@ const loadGoogleMapsScript = (key) => {
   return window.__avTrackGoogleMapsPromise
 }
 
+let resizeObserver = null
+
 const initMap = async () => {
-  if (!mapContainer.value || !currentTask.value) return
-  if (mapProvider.value !== 'Google Maps') return
+  if (!currentTask.value) return
   if (!mapApiKey.value) return
 
+  const rawLat = currentTask.value.dropoff_lat ?? currentTask.value.pickup_lat
+  const rawLng = currentTask.value.dropoff_lng ?? currentTask.value.pickup_lng
+  if (rawLat == null || rawLng == null) return
+
+  const lat = Number(rawLat)
+  const lng = Number(rawLng)
+  if (!lat || !lng) return
+
   const container = mapContainer.value
-  if (!container.clientWidth || !container.clientHeight) {
-    setTimeout(() => initMap(), 150)
-    return
-  }
+  if (!container) return
 
-  const dropLat = currentTask.value.dropoff_lat
-  const dropLng = currentTask.value.dropoff_lng
-  const pickLat = currentTask.value.pickup_lat
-  const pickLng = currentTask.value.pickup_lng
+  try {
+    const maps = await loadGoogleMapsScript(mapApiKey.value)
+    const center = { lat, lng }
 
-  const lat = dropLat ?? pickLat
-  const lng = dropLng ?? pickLng
-  if (lat == null || lng == null) return
-
-  const maps = await loadGoogleMapsScript(mapApiKey.value)
-  const center = { lat: Number(lat), lng: Number(lng) }
-
-  if (!mapInstance) {
-    mapInstance = new maps.Map(mapContainer.value, {
+    // Always re-create the map so it binds to the current DOM container.
+    // Reusing a stale mapInstance from a previous route will leave the map blank.
+    if (mapMarker) { mapMarker.setMap(null); mapMarker = null }
+    container.innerHTML = ''
+    mapInstance = new maps.Map(container, {
       center,
-      zoom: 17,
+      zoom: 16,
       mapTypeId: 'roadmap',
       disableDefaultUI: true,
       gestureHandling: 'greedy',
     })
-  } else {
-    mapInstance.setCenter(center)
-  }
 
-  if (!mapMarker) {
     mapMarker = new maps.Marker({
       position: center,
       map: mapInstance,
+      title: currentTask.value.customer_name || 'Delivery'
     })
-  } else {
-    mapMarker.setPosition(center)
-  }
 
-  if (dropLat != null && dropLng != null && pickLat != null && pickLng != null) {
-    const bounds = new maps.LatLngBounds()
-    bounds.extend({ lat: Number(dropLat), lng: Number(dropLng) })
-    bounds.extend({ lat: Number(pickLat), lng: Number(pickLng) })
-    const latDiff = Math.abs(Number(dropLat) - Number(pickLat))
-    const lngDiff = Math.abs(Number(dropLng) - Number(pickLng))
-    const isClose = latDiff < 0.01 && lngDiff < 0.01
-    if (isClose) {
-      mapInstance.setCenter(center)
-      mapInstance.setZoom(17)
-    } else {
-      mapInstance.fitBounds(bounds, 24)
-      maps.event.addListenerOnce(mapInstance, 'bounds_changed', () => {
-        const currentZoom = mapInstance.getZoom()
-        if (currentZoom && currentZoom > 16) {
-          mapInstance.setZoom(16)
+    if (window.ResizeObserver) {
+      if (resizeObserver) resizeObserver.disconnect()
+      resizeObserver = new ResizeObserver(() => {
+        if (mapInstance) {
+          window.google.maps.event.trigger(mapInstance, 'resize')
+          mapInstance.setCenter(center)
         }
       })
+      resizeObserver.observe(container)
     }
-  } else {
-    mapInstance.setZoom(17)
-  }
 
-  maps.event.trigger(mapInstance, 'resize')
-  setTimeout(() => {
-    mapInstance.setCenter(center)
-    mapInstance.setZoom(mapInstance.getZoom() || 17)
-  }, 120)
+    hasMap.value = true
+    maps.event.trigger(mapInstance, 'resize')
+    setTimeout(() => {
+      if (mapInstance) {
+        maps.event.trigger(mapInstance, 'resize')
+        mapInstance.setCenter(center)
+      }
+    }, 300)
+  } catch (e) {
+    console.warn('initMap error:', e)
+  }
 }
 </script>
 

@@ -215,3 +215,15 @@ frappe.ui.form.on('Supplier', {
         av_track.setup_search_button(frm, 'track_pickup_lat', 'track_pickup_lng');
     }
 });
+
+frappe.ui.form.on('Track Delivery Job', {
+    refresh: function(frm) {
+        frm.add_custom_button(__('Dropoff Location Map Picker'), function() {
+            av_track.open_map_picker_dialog(frm, 'dropoff_lat', 'dropoff_lng');
+        }, __('Tracking'));
+        
+        frm.add_custom_button(__('Pickup Location Map Picker'), function() {
+            av_track.open_map_picker_dialog(frm, 'pickup_lat', 'pickup_lng');
+        }, __('Tracking'));
+    }
+});

@@ -65,23 +65,31 @@ const showNotification = (title, message) => {
 
 onMounted(() => {
   const host = window.location.hostname
-  const port = window.location.port ? ':9000' : ''
-  const protocol = window.location.port ? 'http' : 'https'
+  const port = window.location.port === '8080' ? ':9001' : (window.location.port ? `:${window.location.port}` : '')
+  const protocol = window.location.protocol || 'http:'
   
-  const url = `${protocol}://${host}${port}/${host}`
+  const url = `${protocol}//${host}${port}/${host}`
   
-  socket = io(url, { 
-    withCredentials: true,
-    reconnectionAttempts: 5
-  })
-  
-  socket.on('new_delivery_job', (data) => {
-    showNotification(data.title || 'New Job', `Job ${data.job} has been assigned to you.`)
-  })
-  
-  socket.on('job_cancelled', (data) => {
-    showNotification(data.title || 'Job Cancelled', `Job ${data.job} was cancelled.`)
-  })
+  try {
+    socket = io(url, { 
+      withCredentials: true,
+      reconnectionAttempts: 5
+    })
+    
+    socket.on('new_delivery_job', (data) => {
+      showNotification(data.title || 'New Job', `Job ${data.job || ''} has been assigned to you.`)
+    })
+    
+    socket.on('delivery_job_status_updated', (data) => {
+      showNotification('Job Status Updated', `Job ${data.job || ''} status is now ${data.status || ''}.`)
+    })
+    
+    socket.on('job_cancelled', (data) => {
+      showNotification(data.title || 'Job Cancelled', `Job ${data.job || ''} was cancelled.`)
+    })
+  } catch (e) {
+    console.warn('Socket connection error:', e)
+  }
 })
 
 onUnmounted(() => {

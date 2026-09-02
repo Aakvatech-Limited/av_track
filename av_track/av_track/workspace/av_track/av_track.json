@@ -1,0 +1,126 @@
+{
+ "charts": [
+  {
+   "chart_name": "Delivery Jobs by Status",
+   "label": "Delivery Jobs by Status"
+  },
+  {
+   "chart_name": "Delivery Jobs by Driver",
+   "label": "Delivery Jobs by Driver"
+  }
+ ],
+ "content": "[{\"id\":\"hdr001avtk\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Delivery Operations</b></span>\",\"col\":12}},{\"id\":\"nc001avtk\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Total Delivery Jobs\",\"col\":3}},{\"id\":\"nc002avtk\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Delivered Jobs\",\"col\":3}},{\"id\":\"nc003avtk\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Failed Jobs\",\"col\":3}},{\"id\":\"nc004avtk\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Avg Distance per Delivery (KM)\",\"col\":3}},{\"id\":\"spc001avtk\",\"type\":\"spacer\",\"data\":{\"col\":12}},{\"id\":\"cht001avtk\",\"type\":\"chart\",\"data\":{\"chart_name\":\"Delivery Jobs by Status\",\"col\":6}},{\"id\":\"cht002avtk\",\"type\":\"chart\",\"data\":{\"chart_name\":\"Delivery Jobs by Driver\",\"col\":6}},{\"id\":\"spc002avtk\",\"type\":\"spacer\",\"data\":{\"col\":12}},{\"id\":\"hdr002avtk\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Quick Access</b></span>\",\"col\":12}},{\"id\":\"sc001avtk\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Track Delivery Job\",\"col\":3}},{\"id\":\"sc002avtk\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Delivery Job Turnaround Time\",\"col\":3}},{\"id\":\"sc003avtk\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Driver\",\"col\":3}},{\"id\":\"spc003avtk\",\"type\":\"spacer\",\"data\":{\"col\":12}},{\"id\":\"hdr003avtk\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Masters &amp; Reports</b></span>\",\"col\":12}},{\"id\":\"crd001avtk\",\"type\":\"card\",\"data\":{\"card_name\":\"Delivery Management\",\"col\":6}},{\"id\":\"crd002avtk\",\"type\":\"card\",\"data\":{\"card_name\":\"Reports\",\"col\":6}}]",
+ "creation": "2026-09-01 00:00:00.000000",
+ "custom_blocks": [],
+ "docstatus": 0,
+ "doctype": "Workspace",
+ "for_user": "",
+ "hide_custom": 0,
+ "icon": "tool",
+ "idx": 0,
+ "is_hidden": 0,
+ "label": "AV Track",
+ "links": [
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Delivery Management",
+   "link_count": 0,
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Track Delivery Job",
+   "link_count": 0,
+   "link_to": "Track Delivery Job",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Driver",
+   "link_count": 0,
+   "link_to": "Driver",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Reports",
+   "link_count": 0,
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Track Delivery Job Turnaround Time Report",
+   "link_count": 0,
+   "link_to": "Track Delivery Job Turnaround Time Report",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  }
+ ],
+ "modified": "2026-09-01 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "AV Track",
+ "name": "AV Track",
+ "number_cards": [
+  {
+   "label": "Total Delivery Jobs",
+   "number_card_name": "Total Delivery Jobs"
+  },
+  {
+   "label": "Delivered Jobs",
+   "number_card_name": "Delivered Jobs"
+  },
+  {
+   "label": "Failed Jobs",
+   "number_card_name": "Failed Jobs"
+  },
+  {
+   "label": "Avg Distance per Delivery (KM)",
+   "number_card_name": "Avg Distance per Delivery (KM)"
+  }
+ ],
+ "owner": "Administrator",
+ "parent_page": "",
+ "public": 1,
+ "quick_lists": [],
+ "restrict_to_domain": "",
+ "roles": [],
+ "sequence_id": 1.0,
+ "shortcuts": [
+  {
+   "color": "Blue",
+   "format": "{} Active",
+   "label": "Track Delivery Job",
+   "link_to": "Track Delivery Job",
+   "stats_filter": "{\"status\": [\"not in\", [\"Delivered\", \"Failed\"]]}",
+   "type": "DocType"
+  },
+  {
+   "color": "Green",
+   "label": "Delivery Job Turnaround Time",
+   "link_to": "Track Delivery Job Turnaround Time Report",
+   "type": "Report"
+  },
+  {
+   "color": "Grey",
+   "label": "Driver",
+   "link_to": "Driver",
+   "type": "DocType"
+  }
+ ],
+ "title": "AV Track"
+}

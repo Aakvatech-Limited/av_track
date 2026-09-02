@@ -48,6 +48,7 @@ doctype_js = {
     "Company": "public/js/track_map_sync.js",
     "Warehouse": "public/js/track_map_sync.js",
     "Supplier": "public/js/track_map_sync.js",
+    "Track Delivery Job": "public/js/track_map_sync.js",
     "Sales Order": "public/js/track_create_job.js",
     "Sales Invoice": "public/js/track_create_job.js",
     "Delivery Note": "public/js/track_create_job.js",
