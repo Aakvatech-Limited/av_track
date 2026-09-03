@@ -97,15 +97,17 @@
                 </svg>
                 Exit
               </router-link>
-              <router-link
-                :to="arrivedRoute"
-                class="flex flex-1 items-center justify-center rounded-2xl bg-blue-600 py-4 text-sm font-bold text-white shadow-lg shadow-blue-600/30 transition active:scale-95"
+              <button
+                type="button"
+                :disabled="isConfirmingPickup"
+                @click="handleArrived"
+                class="flex flex-1 items-center justify-center rounded-2xl bg-blue-600 py-4 text-sm font-bold text-white shadow-lg shadow-blue-600/30 transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 <svg class="mr-2 h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <path d="M20 6L9 17l-5-5" stroke-linecap="round" stroke-linejoin="round" />
                 </svg>
-                Arrived
-              </router-link>
+                {{ isConfirmingPickup ? 'Confirming...' : arrivedLabel }}
+              </button>
               <button
                 type="button"
                 @click="showDelayModal = true"
@@ -180,8 +182,8 @@
 
 <script setup>
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import { useRoute } from 'vue-router'
-import { getDriverDashboard, postLocationPing, logDeliveryDelay } from '@/utils/auth'
+import { useRoute, useRouter } from 'vue-router'
+import { getDriverDashboard, postLocationPing, logDeliveryDelay, updateJobStatus } from '@/utils/auth'
 
 const showDelayModal = ref(false)
 const selectedDelayReason = ref('')
@@ -213,6 +215,8 @@ const submitDelay = async () => {
 }
 
 const route = useRoute()
+const router = useRouter()
+const isConfirmingPickup = ref(false)
 const mapContainer = ref(null)
 const hasMap = ref(false)
 const currentTask = ref(null)
@@ -248,17 +252,25 @@ const distanceLabel = computed(() => {
   return currentTask.value.distance_label ? `(${currentTask.value.distance_label})` : ''
 })
 
+const isPickupLeg = computed(() => currentTask.value?.status === 'En Route to Pickup')
+
 const taskAddress = computed(() => {
   if (!currentTask.value) return 'Unknown Destination'
+  if (isPickupLeg.value) {
+    return currentTask.value.pickup_address || currentTask.value.dropoff_address || 'Address not provided'
+  }
   return currentTask.value.dropoff_address || currentTask.value.pickup_address || 'Address not provided'
 })
 
 const taskSubAddress = computed(() => {
   if (!currentTask.value) return ''
-  return currentTask.value.pickup_address && currentTask.value.dropoff_address 
-    ? currentTask.value.pickup_address 
+  if (isPickupLeg.value) return ''
+  return currentTask.value.pickup_address && currentTask.value.dropoff_address
+    ? currentTask.value.pickup_address
     : ''
 })
+
+const arrivedLabel = computed(() => (isPickupLeg.value ? 'Confirm Pickup' : 'Arrived'))
 
 const customerName = computed(() => {
   if (!currentTask.value) return 'Customer'
@@ -273,12 +285,31 @@ const nextStepPrefix = computed(() =>
   routeSummary.value.stepInstruction ? 'Next step' : 'Continue to'
 )
 
-const arrivedRoute = computed(() => ({
-  path: '/driver/complete',
-  query: {
-    job: currentTask.value?.name || route.query.job || '',
-  },
-}))
+const handleArrived = async () => {
+  if (!currentTask.value?.name) return
+
+  if (!isPickupLeg.value) {
+    router.push({
+      path: '/driver/complete',
+      query: { job: currentTask.value.name || route.query.job || '' },
+    })
+    return
+  }
+
+  isConfirmingPickup.value = true
+  try {
+    const position = await getCurrentPosition()
+    await updateJobStatus(currentTask.value.name, 'Picked Up', {
+      lat: position.lat,
+      lng: position.lng,
+    })
+    router.push('/driver/dashboard')
+  } catch (error) {
+    alert('Could not confirm pickup: ' + (error.message || 'Unknown error'))
+  } finally {
+    isConfirmingPickup.value = false
+  }
+}
 
 const getOrCreateDeviceId = () => {
   try {
@@ -406,8 +437,12 @@ const clearDirections = () => {
 
 const recenterMap = () => {
   if (!mapInstance || !currentTask.value) return
-  const lat = currentTask.value.dropoff_lat ?? currentTask.value.pickup_lat
-  const lng = currentTask.value.dropoff_lng ?? currentTask.value.pickup_lng
+  const lat = isPickupLeg.value
+    ? (currentTask.value.pickup_lat ?? currentTask.value.dropoff_lat)
+    : (currentTask.value.dropoff_lat ?? currentTask.value.pickup_lat)
+  const lng = isPickupLeg.value
+    ? (currentTask.value.pickup_lng ?? currentTask.value.dropoff_lng)
+    : (currentTask.value.dropoff_lng ?? currentTask.value.pickup_lng)
   if (lat == null || lng == null) return
   const center = { lat: Number(lat), lng: Number(lng) }
   if (directionsRenderer?.getDirections()?.routes?.[0]) {
@@ -429,14 +464,27 @@ const initMap = async () => {
   if (mapProvider.value !== 'Google Maps') return
   if (!mapApiKey.value) return
 
-  const lat = currentTask.value.dropoff_lat ?? currentTask.value.pickup_lat
-  const lng = currentTask.value.dropoff_lng ?? currentTask.value.pickup_lng
-  if (lat == null || lng == null) return
+  const pickupLeg = isPickupLeg.value
+  const destLat = pickupLeg
+    ? (currentTask.value.pickup_lat ?? currentTask.value.dropoff_lat)
+    : (currentTask.value.dropoff_lat ?? currentTask.value.pickup_lat)
+  const destLng = pickupLeg
+    ? (currentTask.value.pickup_lng ?? currentTask.value.dropoff_lng)
+    : (currentTask.value.dropoff_lng ?? currentTask.value.pickup_lng)
+  if (destLat == null || destLng == null) return
+
+  // On the pickup leg, route from the driver's live position to the pickup point.
+  // On the delivery leg, route from the pickup point to the dropoff point.
+  let originLat = currentTask.value.pickup_lat
+  let originLng = currentTask.value.pickup_lng
+  if (pickupLeg) {
+    const position = await getCurrentPosition()
+    originLat = position.lat
+    originLng = position.lng
+  }
 
   const maps = await loadGoogleMapsScript(mapApiKey.value)
-  const center = { lat: Number(lat), lng: Number(lng) }
-  const pickupLat = currentTask.value.pickup_lat
-  const pickupLng = currentTask.value.pickup_lng
+  const center = { lat: Number(destLat), lng: Number(destLng) }
 
   if (!mapInstance) {
     mapInstance = new maps.Map(mapContainer.value, {
@@ -466,21 +514,14 @@ const initMap = async () => {
     })
   }
 
-  const canDrawRoute =
-    pickupLat != null &&
-    pickupLng != null &&
-    currentTask.value.dropoff_lat != null &&
-    currentTask.value.dropoff_lng != null
+  const canDrawRoute = originLat != null && originLng != null
 
   if (canDrawRoute) {
     const directionsService = new maps.DirectionsService()
     try {
       const response = await directionsService.route({
-        origin: { lat: Number(pickupLat), lng: Number(pickupLng) },
-        destination: {
-          lat: Number(currentTask.value.dropoff_lat),
-          lng: Number(currentTask.value.dropoff_lng),
-        },
+        origin: { lat: Number(originLat), lng: Number(originLng) },
+        destination: { lat: Number(destLat), lng: Number(destLng) },
         travelMode: maps.TravelMode.DRIVING,
       })
       directionsRenderer.setDirections(response)
