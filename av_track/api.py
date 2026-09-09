@@ -2,6 +2,7 @@ from __future__ import unicode_literals
 
 import base64
 import binascii
+import time
 
 import frappe
 from frappe.utils.file_manager import save_file
@@ -917,3 +918,89 @@ def geocode_address(address):
             title="Google Maps Geocoding Error", message=frappe.get_traceback()
         )
         frappe.throw("Error communicating with Google Maps.")
+
+
+# --- OpenStreetMap Nominatim geocoding (Desk address picker + resolved-address
+# backfill). Kept separate from Google, which is reserved for the driver app
+# (live navigation and distance calculation) only. ---
+
+NOMINATIM_BASE_URL = "https://nominatim.openstreetmap.org"
+NOMINATIM_USER_AGENT = "AVTrack-DeliveryPlatform/1.0 (contact: support@aakvatech.com)"
+NOMINATIM_MIN_REQUEST_INTERVAL = 1.1  # Nominatim's public usage policy: max 1 req/sec
+NOMINATIM_CACHE_TTL = 60  # seconds
+
+
+def _nominatim_throttle():
+    """Enforce Nominatim's 1 request/second public usage policy across all users."""
+    cache = frappe.cache()
+    last_call = cache.get_value("av_track_nominatim_last_call")
+    now = time.time()
+    if last_call:
+        elapsed = now - float(last_call)
+        if elapsed < NOMINATIM_MIN_REQUEST_INTERVAL:
+            time.sleep(NOMINATIM_MIN_REQUEST_INTERVAL - elapsed)
+    cache.set_value("av_track_nominatim_last_call", str(time.time()), expires_in_sec=5)
+
+
+def _nominatim_get(path, params):
+    cache_key = f"av_track_nominatim:{path}:{frappe.as_json(params, indent=None)}"
+    cache = frappe.cache()
+    cached = cache.get_value(cache_key)
+    if cached:
+        return frappe.parse_json(cached)
+
+    _nominatim_throttle()
+    try:
+        response = requests.get(
+            f"{NOMINATIM_BASE_URL}/{path}",
+            params={**params, "format": "jsonv2"},
+            headers={"User-Agent": NOMINATIM_USER_AGENT},
+            timeout=8,
+        )
+        response.raise_for_status()
+        data = response.json()
+    except requests.RequestException:
+        frappe.log_error("Nominatim request failed", "Geocoding Error")
+        frappe.throw("Location service is temporarily unavailable. Please try again.")
+
+    cache.set_value(cache_key, frappe.as_json(data), expires_in_sec=NOMINATIM_CACHE_TTL)
+    return data
+
+
+def reverse_geocode(lat, lng):
+    """Resolve a lat/lng pair to a human-readable address via Nominatim.
+
+    Plain Python helper (not whitelisted) so it can also be called from
+    validate() hooks and patches, not just the client.
+    """
+    if lat is None or lng is None:
+        return ""
+
+    data = _nominatim_get("reverse", {"lat": lat, "lon": lng})
+    return data.get("display_name", "") if isinstance(data, dict) else ""
+
+
+@frappe.whitelist()
+def reverse_geocode_address(latitude, longitude):
+    """Whitelisted wrapper around reverse_geocode() for client-side calls."""
+    return {"address": reverse_geocode(latitude, longitude)}
+
+
+@frappe.whitelist()
+def search_location(query):
+    """Forward-geocode a free-text search term to a list of matching places via Nominatim."""
+    if not query or not str(query).strip():
+        return []
+
+    data = _nominatim_get("search", {"q": str(query).strip(), "limit": 5})
+    if not isinstance(data, list):
+        return []
+
+    return [
+        {
+            "address": item.get("display_name", ""),
+            "lat": float(item.get("lat")),
+            "lng": float(item.get("lon")),
+        }
+        for item in data
+    ]

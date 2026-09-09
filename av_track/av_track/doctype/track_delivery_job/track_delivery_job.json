@@ -130,7 +130,9 @@
   {
    "fieldname": "pickup_address",
    "fieldtype": "Small Text",
-   "label": "Pickup Address"
+   "label": "Pickup Address",
+   "read_only": 1,
+   "description": "Set automatically from the source document or the Pickup Location Map Picker."
   },
   {
    "fieldname": "column_4",
@@ -162,7 +164,9 @@
   {
    "fieldname": "dropoff_address",
    "fieldtype": "Small Text",
-   "label": "Dropoff Address"
+   "label": "Dropoff Address",
+   "read_only": 1,
+   "description": "Set automatically from the source document or the Dropoff Location Map Picker."
   },
   {
    "fieldname": "column_6",

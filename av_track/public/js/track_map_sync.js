@@ -1,6 +1,6 @@
 frappe.provide('av_track');
 
-av_track.open_map_picker_dialog = function(frm, lat_field, lng_field) {
+av_track.open_map_picker_dialog = function(frm, lat_field, lng_field, address_field) {
     let current_lat = parseFloat(frm.doc[lat_field]) || -1.286389; // Default Nairobi coordinates if empty
     let current_lng = parseFloat(frm.doc[lng_field]) || 36.817223;
     let has_existing = Boolean(frm.doc[lat_field] && frm.doc[lng_field]);
@@ -13,32 +13,11 @@ av_track.open_map_picker_dialog = function(frm, lat_field, lng_field) {
                 label: __('Search Location Address'),
                 fieldname: 'search_address',
                 fieldtype: 'Data',
-                placeholder: __('Type place name or address (e.g. Westlands Nairobi)...')
+                placeholder: __('Search for a street, landmark, or area...')
             },
             {
-                fieldname: 'btn_search',
-                fieldtype: 'Button',
-                label: __('Search & Fly to Location'),
-                click: function() {
-                    let addr = d.get_value('search_address');
-                    if (!addr) {
-                        frappe.show_alert({message: __('Please enter an address to search.'), indicator: 'orange'});
-                        return;
-                    }
-                    frappe.call({
-                        method: 'av_track.api.geocode_address',
-                        args: { address: addr },
-                        callback: function(r) {
-                            if (r.message && r.message.length > 0) {
-                                let match = r.message[0];
-                                update_map_position(match.lat, match.lng, 16);
-                                frappe.show_alert({message: __('Location found! Drag pin to refine exact position.'), indicator: 'green'});
-                            } else {
-                                frappe.msgprint(__('No locations found for this address.'));
-                            }
-                        }
-                    });
-                }
+                fieldname: 'search_results',
+                fieldtype: 'HTML'
             },
             {
                 fieldtype: 'Section Break'
@@ -69,6 +48,16 @@ av_track.open_map_picker_dialog = function(frm, lat_field, lng_field) {
                 precision: 8,
                 read_only: 1,
                 default: has_existing ? current_lng : null
+            },
+            {
+                fieldtype: 'Section Break'
+            },
+            {
+                label: __('Resolved Address'),
+                fieldname: 'resolved_address',
+                fieldtype: 'Small Text',
+                read_only: 1,
+                description: __('Automatically filled in from the selected location.')
             }
         ],
         primary_action_label: __('Confirm & Save Location'),
@@ -82,6 +71,13 @@ av_track.open_map_picker_dialog = function(frm, lat_field, lng_field) {
 
             frm.set_value(lat_field, lat);
             frm.set_value(lng_field, lng);
+
+            if (address_field) {
+                let resolved = d.get_value('resolved_address');
+                if (resolved) {
+                    frm.set_value(address_field, resolved);
+                }
+            }
 
             let geojson = {
                 "type": "FeatureCollection",
@@ -112,6 +108,7 @@ av_track.open_map_picker_dialog = function(frm, lat_field, lng_field) {
 
     let map = null;
     let marker = null;
+    let search_timer = null;
 
     function init_leaflet_map() {
         if (typeof L === 'undefined') {
@@ -142,6 +139,7 @@ av_track.open_map_picker_dialog = function(frm, lat_field, lng_field) {
         if (has_existing) {
             d.set_value('latitude', current_lat);
             d.set_value('longitude', current_lng);
+            resolve_address_for_position(current_lat, current_lng);
         }
 
         // Marker drag listener
@@ -149,6 +147,7 @@ av_track.open_map_picker_dialog = function(frm, lat_field, lng_field) {
             let pos = marker.getLatLng();
             d.set_value('latitude', pos.lat);
             d.set_value('longitude', pos.lng);
+            resolve_address_for_position(pos.lat, pos.lng);
         });
 
         // Map click listener
@@ -156,6 +155,7 @@ av_track.open_map_picker_dialog = function(frm, lat_field, lng_field) {
             marker.setLatLng(e.latlng);
             d.set_value('latitude', e.latlng.lat);
             d.set_value('longitude', e.latlng.lng);
+            resolve_address_for_position(e.latlng.lat, e.latlng.lng);
         });
 
         setTimeout(function() {
@@ -174,6 +174,78 @@ av_track.open_map_picker_dialog = function(frm, lat_field, lng_field) {
         d.set_value('longitude', lng);
     }
 
+    function resolve_address_for_position(lat, lng) {
+        frappe.call({
+            method: 'av_track.api.reverse_geocode_address',
+            args: { latitude: lat, longitude: lng },
+            callback: function(r) {
+                if (r.message && r.message.address) {
+                    d.set_value('resolved_address', r.message.address);
+                }
+            }
+        });
+    }
+
+    function render_search_results(results) {
+        let $wrapper = d.fields_dict.search_results.$wrapper;
+        if (!results || !results.length) {
+            $wrapper.html('');
+            return;
+        }
+
+        let $list = $('<div class="av-track-search-results"></div>').css({
+            border: '1px solid var(--border-color)',
+            'border-radius': '8px',
+            'max-height': '220px',
+            'overflow-y': 'auto',
+            'margin-top': '4px'
+        });
+
+        results.forEach(function(result) {
+            let $item = $('<div class="av-track-search-result"></div>')
+                .text(result.address)
+                .css({
+                    padding: '8px 12px',
+                    cursor: 'pointer',
+                    'border-bottom': '1px solid var(--border-color)',
+                    'font-size': '13px'
+                })
+                .on('mouseenter', function() { $(this).css('background', 'var(--bg-light-gray)'); })
+                .on('mouseleave', function() { $(this).css('background', ''); })
+                .on('click', function() {
+                    update_map_position(result.lat, result.lng, 16);
+                    d.set_value('resolved_address', result.address);
+                    d.set_value('search_address', '');
+                    $wrapper.html('');
+                    frappe.show_alert({message: __('Location found! Drag pin to refine exact position.'), indicator: 'green'});
+                });
+            $list.append($item);
+        });
+
+        $wrapper.html('');
+        $wrapper.append($list);
+    }
+
+    d.fields_dict.search_address.$input.on('input', function() {
+        let query = ($(this).val() || '').trim();
+        clearTimeout(search_timer);
+
+        if (query.length < 3) {
+            d.fields_dict.search_results.$wrapper.html('');
+            return;
+        }
+
+        search_timer = setTimeout(function() {
+            frappe.call({
+                method: 'av_track.api.search_location',
+                args: { query: query },
+                callback: function(r) {
+                    render_search_results(r.message || []);
+                }
+            });
+        }, 500);
+    });
+
     if (typeof L !== 'undefined') {
         setTimeout(init_leaflet_map, 150);
     } else {
@@ -186,44 +258,44 @@ av_track.open_map_picker_dialog = function(frm, lat_field, lng_field) {
     }
 };
 
-av_track.setup_search_button = function(frm, lat_field, lng_field) {
+av_track.setup_search_button = function(frm, lat_field, lng_field, address_field) {
     frm.add_custom_button(__('Location Map Picker'), function() {
-        av_track.open_map_picker_dialog(frm, lat_field, lng_field);
+        av_track.open_map_picker_dialog(frm, lat_field, lng_field, address_field);
     }, __('Tracking'));
 };
 
 frappe.ui.form.on('Customer', {
     refresh: function(frm) {
-        av_track.setup_search_button(frm, 'track_customer_lat', 'track_customer_lng');
+        av_track.setup_search_button(frm, 'track_customer_lat', 'track_customer_lng', 'track_resolved_address');
     }
 });
 
 frappe.ui.form.on('Company', {
     refresh: function(frm) {
-        av_track.setup_search_button(frm, 'track_pickup_lat', 'track_pickup_lng');
+        av_track.setup_search_button(frm, 'track_pickup_lat', 'track_pickup_lng', 'track_resolved_address');
     }
 });
 
 frappe.ui.form.on('Warehouse', {
     refresh: function(frm) {
-        av_track.setup_search_button(frm, 'track_pickup_lat', 'track_pickup_lng');
+        av_track.setup_search_button(frm, 'track_pickup_lat', 'track_pickup_lng', 'track_resolved_address');
     }
 });
 
 frappe.ui.form.on('Supplier', {
     refresh: function(frm) {
-        av_track.setup_search_button(frm, 'track_pickup_lat', 'track_pickup_lng');
+        av_track.setup_search_button(frm, 'track_pickup_lat', 'track_pickup_lng', 'track_resolved_address');
     }
 });
 
 frappe.ui.form.on('Track Delivery Job', {
     refresh: function(frm) {
         frm.add_custom_button(__('Dropoff Location Map Picker'), function() {
-            av_track.open_map_picker_dialog(frm, 'dropoff_lat', 'dropoff_lng');
+            av_track.open_map_picker_dialog(frm, 'dropoff_lat', 'dropoff_lng', 'dropoff_address');
         }, __('Tracking'));
-        
+
         frm.add_custom_button(__('Pickup Location Map Picker'), function() {
-            av_track.open_map_picker_dialog(frm, 'pickup_lat', 'pickup_lng');
+            av_track.open_map_picker_dialog(frm, 'pickup_lat', 'pickup_lng', 'pickup_address');
         }, __('Tracking'));
     }
 });

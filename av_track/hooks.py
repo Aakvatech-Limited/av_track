@@ -159,6 +159,18 @@ after_migrate = "av_track.setup.after_migrate"
 # 	}
 # }
 doc_events = {
+	"Customer": {
+		"validate": "av_track.track_job.auto_resolve_address"
+	},
+	"Company": {
+		"validate": "av_track.track_job.auto_resolve_address"
+	},
+	"Warehouse": {
+		"validate": "av_track.track_job.auto_resolve_address"
+	},
+	"Supplier": {
+		"validate": "av_track.track_job.auto_resolve_address"
+	},
 	"Sales Order": {
 		"on_submit": "av_track.track_job.create_from_source"
 	},

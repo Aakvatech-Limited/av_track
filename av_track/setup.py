@@ -32,6 +32,13 @@ custom_fields = {
             "read_only": 1,
             "insert_after": "track_customer_lat",
         },
+        {
+            "fieldname": "track_resolved_address",
+            "fieldtype": "Small Text",
+            "label": "Resolved Address",
+            "read_only": 1,
+            "insert_after": "track_customer_lng",
+        },
     ],
     "Company": [
         {
@@ -62,6 +69,13 @@ custom_fields = {
             "precision": "8",
             "read_only": 1,
             "insert_after": "track_pickup_lat",
+        },
+        {
+            "fieldname": "track_resolved_address",
+            "fieldtype": "Small Text",
+            "label": "Resolved Address",
+            "read_only": 1,
+            "insert_after": "track_pickup_lng",
         },
     ],
     "Warehouse": [
@@ -94,6 +108,13 @@ custom_fields = {
             "read_only": 1,
             "insert_after": "track_pickup_lat",
         },
+        {
+            "fieldname": "track_resolved_address",
+            "fieldtype": "Small Text",
+            "label": "Resolved Address",
+            "read_only": 1,
+            "insert_after": "track_pickup_lng",
+        },
     ],
     "Supplier": [
         {
@@ -124,6 +145,13 @@ custom_fields = {
             "precision": "8",
             "read_only": 1,
             "insert_after": "track_pickup_lat",
+        },
+        {
+            "fieldname": "track_resolved_address",
+            "fieldtype": "Small Text",
+            "label": "Resolved Address",
+            "read_only": 1,
+            "insert_after": "track_pickup_lng",
         },
     ],
 }

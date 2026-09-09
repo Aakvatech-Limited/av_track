@@ -94,6 +94,94 @@ def _get_customer_coords(customer):
     return None, None
 
 
+def _resolve_address(doctype, docname, lat, lng):
+    """Best-effort human-readable address for a linked Warehouse/Supplier/
+    Customer/Company record, used as pickup_address/dropoff_address on the
+    delivery job.
+
+    Fallback chain:
+    1. The record's own track_resolved_address (set by the Desk map picker,
+       or by a prior reverse-geocode below).
+    2. A live Nominatim reverse-geocode from the record's coordinates,
+       persisted back onto the record so future jobs don't re-geocode it.
+    3. The record's docname (the original behaviour), if neither of the
+       above is available.
+    """
+    if not docname:
+        return docname
+
+    resolved = frappe.db.get_value(doctype, docname, "track_resolved_address")
+    if resolved:
+        return resolved
+
+    if lat is not None and lng is not None:
+        try:
+            from av_track.api import reverse_geocode
+
+            address = reverse_geocode(lat, lng)
+            if address:
+                frappe.db.set_value(
+                    doctype, docname, "track_resolved_address", address,
+                    update_modified=False,
+                )
+                return address
+        except Exception:
+            frappe.log_error(
+                title="Track Job Address Resolution",
+                message=frappe.get_traceback(),
+            )
+
+    return docname
+
+
+def _coords_fieldnames(doctype):
+    if doctype == "Customer":
+        return "track_customer_lat", "track_customer_lng"
+    if doctype in ("Company", "Warehouse", "Supplier"):
+        return "track_pickup_lat", "track_pickup_lng"
+    return None, None
+
+
+def auto_resolve_address(doc, method=None):
+    """validate hook for Customer/Company/Warehouse/Supplier: keeps
+    track_resolved_address in sync with the record's track_*_lat/track_*_lng
+    via a Nominatim reverse-geocode, so it's ready to pull onto delivery
+    jobs without an extra live lookup at job-creation time.
+    """
+    lat_field, lng_field = _coords_fieldnames(doc.doctype)
+    if not lat_field:
+        return
+
+    lat = doc.get(lat_field)
+    lng = doc.get(lng_field)
+    # Float fields default to 0.0 rather than None when never set, and (0, 0)
+    # is never a legitimate delivery coordinate, so treat it as "unset" too.
+    if not lat or not lng:
+        return
+
+    previous = doc.get_doc_before_save()
+    coords_changed = (
+        not previous
+        or previous.get(lat_field) != lat
+        or previous.get(lng_field) != lng
+    )
+
+    if doc.get("track_resolved_address") and not coords_changed:
+        return
+
+    try:
+        from av_track.api import reverse_geocode
+
+        address = reverse_geocode(lat, lng)
+        if address:
+            doc.track_resolved_address = address
+    except Exception:
+        frappe.log_error(
+            title="Track Address Auto-Resolve",
+            message=frappe.get_traceback(),
+        )
+
+
 def _fetch_phone_from_contact(contact_name):
     if not contact_name:
         return None
@@ -244,22 +332,28 @@ def get_delivery_job_details(source_doctype, source_docname):
         if pickup_lat is not None and pickup_lng is not None:
             details["pickup_lat"] = pickup_lat
             details["pickup_lng"] = pickup_lng
-            details["pickup_address"] = doc.get("supplier")
+            details["pickup_address"] = _resolve_address(
+                "Supplier", doc.get("supplier"), pickup_lat, pickup_lng
+            )
         else:
             frappe.throw("Supplier {0} is missing tracking coordinates (Latitude/Longitude). Please set them first.".format(doc.get("supplier")))
-            
+
         warehouse = _get_doc_warehouse(doc)
         dropoff_lat, dropoff_lng = _get_warehouse_coords(warehouse)
         if dropoff_lat is not None and dropoff_lng is not None:
             details["dropoff_lat"] = dropoff_lat
             details["dropoff_lng"] = dropoff_lng
-            details["dropoff_address"] = warehouse
+            details["dropoff_address"] = _resolve_address(
+                "Warehouse", warehouse, dropoff_lat, dropoff_lng
+            )
         else:
             company_lat, company_lng = _get_company_coords(details["company"])
             if company_lat is not None and company_lng is not None:
                 details["dropoff_lat"] = company_lat
                 details["dropoff_lng"] = company_lng
-                details["dropoff_address"] = details["company"]
+                details["dropoff_address"] = _resolve_address(
+                    "Company", details["company"], company_lat, company_lng
+                )
             else:
                 frappe.throw("Warehouse {0} and Company {1} are both missing tracking coordinates. Please set them first.".format(warehouse or "", details["company"]))
                 
@@ -274,23 +368,29 @@ def get_delivery_job_details(source_doctype, source_docname):
         if pickup_lat is not None and pickup_lng is not None:
             details["pickup_lat"] = pickup_lat
             details["pickup_lng"] = pickup_lng
-            details["pickup_address"] = warehouse
+            details["pickup_address"] = _resolve_address(
+                "Warehouse", warehouse, pickup_lat, pickup_lng
+            )
         else:
             company_lat, company_lng = _get_company_coords(details["company"])
             if company_lat is not None and company_lng is not None:
                 details["pickup_lat"] = company_lat
                 details["pickup_lng"] = company_lng
-                details["pickup_address"] = details["company"]
+                details["pickup_address"] = _resolve_address(
+                    "Company", details["company"], company_lat, company_lng
+                )
             else:
                 frappe.throw("Warehouse {0} and Company {1} are both missing tracking coordinates. Please set them first.".format(warehouse or "", details["company"]))
-                
+
         # Drop-off is the Customer
         customer = doc.get("customer")
         dropoff_lat, dropoff_lng = _get_customer_coords(customer)
         if dropoff_lat is not None and dropoff_lng is not None:
             details["dropoff_lat"] = dropoff_lat
             details["dropoff_lng"] = dropoff_lng
-            details["dropoff_address"] = customer
+            details["dropoff_address"] = _resolve_address(
+                "Customer", customer, dropoff_lat, dropoff_lng
+            )
         else:
             frappe.throw("Customer {0} is missing tracking coordinates (Latitude/Longitude). Please set them first.".format(customer))
                 
