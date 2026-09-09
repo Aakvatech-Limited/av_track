@@ -322,6 +322,10 @@ const mapContainer = ref(null)
 const hasMap = ref(false)
 let mapInstance = null
 let mapMarker = null
+let socket = null
+let handleNewJob = null
+let handleStatusUpdate = null
+let handleUnassigned = null
 
 const currentTask = ref(null)
 const showStopSheet = ref(false)
@@ -478,20 +482,33 @@ onMounted(() => {
   const protocol = window.location.protocol || 'http:'
   const url = `${protocol}//${host}${port}/${host}`
 
+  handleNewJob = () => {
+    loadDriverDashboard()
+    showDialog('New Job Assigned', 'A new delivery job has been assigned to you!', 'info')
+  }
+  handleStatusUpdate = () => {
+    loadDriverDashboard()
+  }
+  handleUnassigned = (data) => {
+    loadDriverDashboard()
+    showDialog(
+      data?.title || 'Job Reassigned',
+      `Job ${data?.job || ''} is no longer assigned to you.`,
+      'warning'
+    )
+  }
+
   try {
-    const socket = io(url, { withCredentials: true, reconnectionAttempts: 5 })
-    socket.on('new_delivery_job', () => {
-      loadDriverDashboard()
-      showDialog('New Job Assigned', 'A new delivery job has been assigned to you!', 'info')
-    })
-    socket.on('delivery_job_status_updated', () => {
-      loadDriverDashboard()
-    })
+    socket = io(url, { withCredentials: true, reconnectionAttempts: 5 })
+    socket.on('new_delivery_job', handleNewJob)
+    socket.on('delivery_job_status_updated', handleStatusUpdate)
+    socket.on('delivery_job_unassigned', handleUnassigned)
   } catch (e) {}
 
   if (window.frappe?.realtime) {
-    window.frappe.realtime.on('new_delivery_job', () => loadDriverDashboard())
-    window.frappe.realtime.on('delivery_job_status_updated', () => loadDriverDashboard())
+    window.frappe.realtime.on('new_delivery_job', handleNewJob)
+    window.frappe.realtime.on('delivery_job_status_updated', handleStatusUpdate)
+    window.frappe.realtime.on('delivery_job_unassigned', handleUnassigned)
   }
 })
 
@@ -504,6 +521,16 @@ onUnmounted(() => {
   if (resizeObserver) {
     resizeObserver.disconnect()
     resizeObserver = null
+  }
+
+  if (socket) {
+    socket.disconnect()
+    socket = null
+  }
+  if (window.frappe?.realtime) {
+    window.frappe.realtime.off('new_delivery_job', handleNewJob)
+    window.frappe.realtime.off('delivery_job_status_updated', handleStatusUpdate)
+    window.frappe.realtime.off('delivery_job_unassigned', handleUnassigned)
   }
 })
 

@@ -83,7 +83,11 @@ onMounted(() => {
     socket.on('delivery_job_status_updated', (data) => {
       showNotification('Job Status Updated', `Job ${data.job || ''} status is now ${data.status || ''}.`)
     })
-    
+
+    socket.on('delivery_job_unassigned', (data) => {
+      showNotification(data.title || 'Job Unassigned', `Job ${data.job || ''} is no longer assigned to you.`)
+    })
+
     socket.on('job_cancelled', (data) => {
       showNotification(data.title || 'Job Cancelled', `Job ${data.job || ''} was cancelled.`)
     })

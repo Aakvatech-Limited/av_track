@@ -61,21 +61,51 @@ class TrackDeliveryJob(Document):
                 pass
 
     def on_update(self):
-        if self.has_value_changed("assigned_driver") and self.assigned_driver:
-            self._notify_assignment_realtime()
+        old_doc = self.get_doc_before_save()
+        old_driver = old_doc.assigned_driver if old_doc else None
+        new_driver = self.assigned_driver
 
-    def _notify_assignment_realtime(self):
+        if old_driver == new_driver:
+            return
+
+        # Reassigned from one driver straight to another, or newly assigned:
+        # tell whoever the job now belongs to.
+        if new_driver:
+            self._notify_assignment_realtime(new_driver, reassigned=bool(old_driver))
+
+        # Cleared, or handed to someone else: the outgoing driver needs to
+        # know the job is no longer theirs, so it disappears from their app
+        # instead of sitting there stale until they happen to refresh.
+        if old_driver and old_driver != new_driver:
+            self._notify_unassignment_realtime(old_driver, reassigned=bool(new_driver))
+
+    def _notify_assignment_realtime(self, driver, reassigned=False):
         try:
             from av_track.api import _notify_driver_realtime
             _notify_driver_realtime(
-                self.assigned_driver,
+                driver,
                 "new_delivery_job",
                 {
-                    "title": "New Delivery Assigned",
+                    "title": "Delivery Reassigned to You" if reassigned else "New Delivery Assigned",
                     "job": self.name,
                     "customer_name": self.customer_name or "",
                     "pickup_address": self.pickup_address or "",
                     "dropoff_address": self.dropoff_address or "",
+                }
+            )
+        except Exception:
+            frappe.log_error(title="AV Track Realtime Notification Error", message=frappe.get_traceback())
+
+    def _notify_unassignment_realtime(self, driver, reassigned=False):
+        try:
+            from av_track.api import _notify_driver_realtime
+            _notify_driver_realtime(
+                driver,
+                "delivery_job_unassigned",
+                {
+                    "title": "Delivery Reassigned" if reassigned else "Delivery Unassigned",
+                    "job": self.name,
+                    "customer_name": self.customer_name or "",
                 }
             )
         except Exception:
