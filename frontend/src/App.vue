@@ -65,10 +65,10 @@ const showNotification = (title, message) => {
 
 onMounted(() => {
   const host = window.location.hostname
-  const port = window.location.port === '8080' ? ':9001' : (window.location.port ? `:${window.location.port}` : '')
-  const protocol = window.location.protocol || 'http:'
-  
-  const url = `${protocol}//${host}${port}/${host}`
+  const port = window.location.port ? ':9001' : ''
+  const protocol = window.location.port ? 'http' : 'https'
+
+  const url = `${protocol}://${host}${port}/${host}`
   
   try {
     socket = io(url, { 
