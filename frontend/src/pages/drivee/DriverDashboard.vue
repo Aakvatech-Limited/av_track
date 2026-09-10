@@ -342,6 +342,83 @@ let handleNewJob = null
 let handleStatusUpdate = null
 let handleUnassigned = null
 
+const DASHBOARD_PING_INTERVAL_MS = 30000
+const DEVICE_ID_KEY = 'av-track-device-id'
+let dashboardPingIntervalId = null
+
+const getOrCreateDeviceId = () => {
+  try {
+    const existing = localStorage.getItem(DEVICE_ID_KEY)
+    if (existing) return existing
+    const generated = `avt-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`
+    localStorage.setItem(DEVICE_ID_KEY, generated)
+    return generated
+  } catch (error) {
+    return null
+  }
+}
+
+const getCurrentPosition = () =>
+  new Promise((resolve) => {
+    if (!navigator.geolocation) {
+      resolve({ lat: null, lng: null, accuracy: null })
+      return
+    }
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        resolve({
+          lat: position.coords.latitude,
+          lng: position.coords.longitude,
+          accuracy: position.coords.accuracy,
+        })
+      },
+      () => resolve({ lat: null, lng: null, accuracy: null }),
+      { enableHighAccuracy: true, timeout: 8000, maximumAge: 15000 }
+    )
+  })
+
+const sendDashboardLocationPing = async () => {
+  const position = await getCurrentPosition()
+  if (position.lat == null || position.lng == null) return
+
+  try {
+    const { postLocationPing } = await import('@/utils/auth')
+    await postLocationPing({
+      lat: position.lat,
+      lng: position.lng,
+      accuracy: position.accuracy,
+      jobId: currentTask.value?.name || null,
+      deviceId: getOrCreateDeviceId(),
+    })
+  } catch (error) {
+    // Keep silent; retry on next cycle.
+  }
+}
+
+// Keeps a driver's last known location current on the dispatch map even
+// while they're just online and waiting for a job, not actively navigating
+// one - DriverNavigate.vue only pings while a job is en route, so without
+// this an idle driver's pin would freeze at wherever they last delivered.
+const startDashboardPingLoop = () => {
+  if (dashboardPingIntervalId) return
+  sendDashboardLocationPing()
+  dashboardPingIntervalId = window.setInterval(sendDashboardLocationPing, DASHBOARD_PING_INTERVAL_MS)
+}
+
+const stopDashboardPingLoop = () => {
+  if (!dashboardPingIntervalId) return
+  window.clearInterval(dashboardPingIntervalId)
+  dashboardPingIntervalId = null
+}
+
+watch(isActive, (active) => {
+  if (active) {
+    startDashboardPingLoop()
+  } else {
+    stopDashboardPingLoop()
+  }
+})
+
 const currentTask = ref(null)
 const showStopSheet = ref(false)
 const selectedStop = ref(null)
@@ -553,6 +630,8 @@ onUnmounted(() => {
     window.frappe.realtime.off('delivery_job_status_updated', handleStatusUpdate)
     window.frappe.realtime.off('delivery_job_unassigned', handleUnassigned)
   }
+
+  stopDashboardPingLoop()
 })
 
 // No watch needed — initMap is called directly from loadDriverDashboard after all data is ready.

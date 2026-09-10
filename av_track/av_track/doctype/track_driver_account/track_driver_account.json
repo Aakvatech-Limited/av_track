@@ -108,7 +108,9 @@
    "default": "0",
    "fieldname": "is_online",
    "fieldtype": "Check",
-   "label": "Is Online"
+   "label": "Is Online",
+   "read_only": 1,
+   "description": "Set automatically by the driver app when they toggle Active Status."
   },
   {
    "fieldname": "column_6",
@@ -117,7 +119,8 @@
   {
    "fieldname": "last_ping_at",
    "fieldtype": "Datetime",
-   "label": "Last Ping At"
+   "label": "Last Ping At",
+   "read_only": 1
   },
   {
    "fieldname": "location_break",
@@ -128,7 +131,8 @@
    "fieldname": "last_lat",
    "fieldtype": "Float",
    "label": "Last Latitude",
-   "precision": "8"
+   "precision": "8",
+   "read_only": 1
   },
   {
    "fieldname": "column_7",
@@ -138,7 +142,8 @@
    "fieldname": "last_lng",
    "fieldtype": "Float",
    "label": "Last Longitude",
-   "precision": "8"
+   "precision": "8",
+   "read_only": 1
   },
   {
    "fieldname": "device_section",
@@ -148,7 +153,8 @@
   {
    "fieldname": "push_token",
    "fieldtype": "Data",
-   "label": "Push Token"
+   "label": "Push Token",
+   "read_only": 1
   },
   {
    "fieldname": "column_8",
@@ -157,7 +163,8 @@
   {
    "fieldname": "device_id",
    "fieldtype": "Data",
-   "label": "Device ID"
+   "label": "Device ID",
+   "read_only": 1
   }
  ],
  "links": [],

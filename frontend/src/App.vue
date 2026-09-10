@@ -1,6 +1,6 @@
 <template>
   <div>
-    <InstallPrompt />
+    <InstallPrompt v-if="!isDispatchRoute" />
     <router-view />
     
     <!-- Global Notification Toast -->
@@ -40,9 +40,13 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { computed, ref, onMounted, onUnmounted } from 'vue'
+import { useRoute } from 'vue-router'
 import InstallPrompt from "./components/InstallPrompt.vue"
 import { io } from 'socket.io-client'
+
+const route = useRoute()
+const isDispatchRoute = computed(() => route.path.startsWith('/dispatch'))
 
 const notification = ref(null)
 let socket = null
