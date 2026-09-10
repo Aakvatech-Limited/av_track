@@ -12,13 +12,21 @@
         <h1 class="text-lg font-bold text-slate-900">Dispatch</h1>
         <p class="text-xs text-slate-500">{{ onlineCount }} online &middot; {{ drivers.length }} total drivers</p>
       </div>
-      <button
-        type="button"
-        class="flex-shrink-0 rounded-lg bg-slate-100 px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-200"
-        @click="handleLogout"
-      >
-        Log Out
-      </button>
+      <div class="flex flex-shrink-0 items-center gap-2">
+        <a
+          href="/app/av-track"
+          class="rounded-lg bg-slate-100 px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-200"
+        >
+          Back to Desk
+        </a>
+        <button
+          type="button"
+          class="rounded-lg bg-slate-100 px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-200"
+          @click="handleLogout"
+        >
+          Log Out
+        </button>
+      </div>
     </div>
 
     <div class="relative flex-1">
