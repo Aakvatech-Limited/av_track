@@ -477,6 +477,7 @@ const loadDriverDashboard = async () => {
       address: stop.dropoff_address || stop.pickup_address || 'Stop',
       distance: stop.distance_label || '',
       type: stop.status || 'Picked Up',
+      status: stop.status || '',
       pickup_address: stop.pickup_address,
       customer_name: stop.customer_name,
       customer_phone: stop.customer_phone,
