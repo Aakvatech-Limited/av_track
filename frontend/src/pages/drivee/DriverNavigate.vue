@@ -93,41 +93,36 @@
               </div>
             </div>
 
-            <div class="flex gap-3">
+            <div class="flex items-stretch gap-3">
               <router-link
                 to="/driver/dashboard"
-                class="flex flex-1 items-center justify-center rounded-2xl bg-red-50 py-4 text-sm font-bold text-red-600 transition active:scale-95"
+                class="flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-2xl bg-red-50 text-red-600 transition active:scale-95"
+                title="Exit"
               >
-                <svg class="mr-2 h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <path d="M18 6L6 18M6 6l12 12" stroke-linecap="round" stroke-linejoin="round" />
                 </svg>
-                Exit
               </router-link>
               <button
                 type="button"
                 :disabled="isConfirmingPickup"
                 @click="handleArrived"
-                class="flex flex-1 items-center justify-center rounded-2xl bg-blue-600 py-4 text-sm font-bold text-white shadow-lg shadow-blue-600/30 transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
+                class="flex min-w-0 flex-1 items-center justify-center gap-2 rounded-2xl bg-blue-600 px-4 text-sm font-bold text-white shadow-lg shadow-blue-600/30 transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
               >
-                <svg class="mr-2 h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <svg class="h-5 w-5 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <path d="M20 6L9 17l-5-5" stroke-linecap="round" stroke-linejoin="round" />
                 </svg>
-                {{ isConfirmingPickup ? 'Confirming...' : arrivedLabel }}
+                <span class="truncate">{{ isConfirmingPickup ? 'Confirming...' : arrivedLabel }}</span>
               </button>
               <button
                 type="button"
                 @click="showDelayModal = true"
-                class="flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-50 text-amber-600 border border-amber-200 transition active:scale-95"
+                class="flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-2xl border border-amber-200 bg-amber-50 text-amber-600 transition active:scale-95"
                 title="Report Delay"
               >
                 <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <circle cx="12" cy="12" r="10"/>
                   <path d="M12 6v6l4 2" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-              </button>
-              <button class="flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-100 text-slate-700 transition active:scale-95">
-                <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" stroke-linecap="round" stroke-linejoin="round" />
                 </svg>
               </button>
             </div>
