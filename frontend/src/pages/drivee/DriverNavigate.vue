@@ -1,5 +1,11 @@
 <template>
   <div class="min-h-[100dvh] bg-slate-100 text-slate-900">
+    <InfoDialog
+      v-model="dialogVisible"
+      :title="dialogTitle"
+      :message="dialogMessage"
+      :variant="dialogVariant"
+    />
     <div class="h-[100dvh] w-full px-6 py-6 lg:px-12 lg:py-10">
       <div class="relative mx-0 h-full w-full max-w-none overflow-hidden rounded-[32px] bg-white shadow-[0_24px_60px_rgba(15,23,42,0.16)] lg:w-[420px]">
         <div ref="mapContainer" class="absolute inset-0 z-0"></div>
@@ -184,6 +190,19 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { getDriverDashboard, postLocationPing, logDeliveryDelay, updateJobStatus } from '@/utils/auth'
+import InfoDialog from '@/components/InfoDialog.vue'
+
+const dialogVisible = ref(false)
+const dialogTitle = ref('')
+const dialogMessage = ref('')
+const dialogVariant = ref('info')
+
+const showDialog = (title, message, variant = 'info') => {
+  dialogTitle.value = title
+  dialogMessage.value = message
+  dialogVariant.value = variant
+  dialogVisible.value = true
+}
 
 const showDelayModal = ref(false)
 const selectedDelayReason = ref('')
@@ -206,9 +225,9 @@ const submitDelay = async () => {
     showDelayModal.value = false
     selectedDelayReason.value = ''
     delayNotes.value = ''
-    alert('Delay report submitted successfully to dispatch.')
+    showDialog('Delay Reported', 'Delay report submitted successfully to dispatch.', 'info')
   } catch (err) {
-    alert('Failed to report delay: ' + (err.message || 'Unknown error'))
+    showDialog('Could Not Report Delay', err.message || 'Unknown error', 'error')
   } finally {
     isSubmittingDelay.value = false
   }
@@ -307,7 +326,7 @@ const handleArrived = async () => {
     })
     router.push('/driver/dashboard')
   } catch (error) {
-    alert('Could not confirm pickup: ' + (error.message || 'Unknown error'))
+    showDialog('Could Not Confirm Pickup', error.message || 'Unknown error', 'error')
   } finally {
     isConfirmingPickup.value = false
   }
