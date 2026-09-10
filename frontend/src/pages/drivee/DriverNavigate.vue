@@ -232,6 +232,8 @@ const routeSummary = ref({
 let mapInstance = null
 let mapMarker = null
 let directionsRenderer = null
+let directionsService = null
+let googleMapsRef = null
 let pingIntervalId = null
 
 const PING_INTERVAL_MS = 30000
@@ -345,6 +347,61 @@ const getCurrentPosition = () =>
 
 let driverMarker = null
 
+// Recomputes the route/ETA/next-step from a given origin to the current
+// leg's destination (pickup point on the pickup leg, dropoff point on the
+// delivery leg), and redraws it. Called once on load and again on every
+// location ping, so navigation actually keeps up as the driver moves
+// instead of freezing at whatever the route looked like on page load.
+const updateRouteFrom = async (originLat, originLng, { fitBounds = false } = {}) => {
+  if (!mapInstance || !googleMapsRef || !directionsRenderer || !currentTask.value) return false
+  if (originLat == null || originLng == null) return false
+
+  const pickupLeg = isPickupLeg.value
+  const destLat = pickupLeg
+    ? (currentTask.value.pickup_lat ?? currentTask.value.dropoff_lat)
+    : (currentTask.value.dropoff_lat ?? currentTask.value.pickup_lat)
+  const destLng = pickupLeg
+    ? (currentTask.value.pickup_lng ?? currentTask.value.dropoff_lng)
+    : (currentTask.value.dropoff_lng ?? currentTask.value.pickup_lng)
+  if (destLat == null || destLng == null) return false
+
+  if (!directionsService) {
+    directionsService = new googleMapsRef.DirectionsService()
+  }
+
+  try {
+    const response = await directionsService.route({
+      origin: { lat: Number(originLat), lng: Number(originLng) },
+      destination: { lat: Number(destLat), lng: Number(destLng) },
+      travelMode: googleMapsRef.TravelMode.DRIVING,
+    })
+    directionsRenderer.setDirections(response)
+
+    const routeResult = response.routes?.[0]
+    const leg = routeResult?.legs?.[0]
+    const step = leg?.steps?.[0]
+
+    routeSummary.value = {
+      durationText: leg?.duration?.text || '',
+      distanceText: leg?.distance?.text || '',
+      stepDistance: step?.distance?.text || '',
+      stepInstruction: stripHtml(step?.instructions || ''),
+    }
+
+    if (fitBounds && routeResult?.bounds) {
+      mapInstance.fitBounds(routeResult.bounds, 40)
+    }
+
+    if (mapMarker) {
+      mapMarker.setMap(null)
+      mapMarker = null
+    }
+    return true
+  } catch (error) {
+    return false
+  }
+}
+
 const sendLocationPing = async () => {
   const jobId = currentTask.value?.name
   if (!jobId) return
@@ -372,6 +429,11 @@ const sendLocationPing = async () => {
       driverMarker.setPosition(driverPos)
     }
   }
+
+  // Keep the route, ETA, distance, and next-step instruction current as
+  // the driver actually moves, instead of leaving them frozen from the
+  // moment the screen first loaded.
+  await updateRouteFrom(position.lat, position.lng)
 
   try {
     await postLocationPing({
@@ -483,7 +545,8 @@ const initMap = async () => {
     originLng = position.lng
   }
 
-  const maps = await loadGoogleMapsScript(mapApiKey.value)
+  googleMapsRef = await loadGoogleMapsScript(mapApiKey.value)
+  const maps = googleMapsRef
   const center = { lat: Number(destLat), lng: Number(destLng) }
 
   if (!mapInstance) {
@@ -515,51 +578,9 @@ const initMap = async () => {
   }
 
   const canDrawRoute = originLat != null && originLng != null
+  const routed = canDrawRoute && (await updateRouteFrom(originLat, originLng, { fitBounds: true }))
 
-  if (canDrawRoute) {
-    const directionsService = new maps.DirectionsService()
-    try {
-      const response = await directionsService.route({
-        origin: { lat: Number(originLat), lng: Number(originLng) },
-        destination: { lat: Number(destLat), lng: Number(destLng) },
-        travelMode: maps.TravelMode.DRIVING,
-      })
-      directionsRenderer.setDirections(response)
-
-      const route = response.routes?.[0]
-      const leg = route?.legs?.[0]
-      const step = leg?.steps?.[0]
-
-      routeSummary.value = {
-        durationText: leg?.duration?.text || '',
-        distanceText: leg?.distance?.text || '',
-        stepDistance: step?.distance?.text || '',
-        stepInstruction: stripHtml(step?.instructions || ''),
-      }
-
-      if (route?.bounds) {
-        mapInstance.fitBounds(route.bounds, 40)
-      }
-
-      if (mapMarker) {
-        mapMarker.setMap(null)
-        mapMarker = null
-      }
-    } catch (error) {
-      resetRouteSummary()
-      clearDirections()
-      if (!mapMarker) {
-        mapMarker = new maps.Marker({
-          position: center,
-          map: mapInstance,
-        })
-      } else {
-        mapMarker.setPosition(center)
-      }
-      mapInstance.setCenter(center)
-      mapInstance.setZoom(17)
-    }
-  } else {
+  if (!routed) {
     resetRouteSummary()
     clearDirections()
     if (!mapMarker) {
