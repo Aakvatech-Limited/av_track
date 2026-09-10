@@ -102,6 +102,12 @@ const showDialog = (title, message, variant = 'info') => {
   dialogVisible.value = true
 }
 
+const initials = computed(() => {
+  const name = (driver.value?.driver_name || driver.value?.driver || '?').trim()
+  const parts = name.split(/\s+/)
+  return ((parts[0]?.[0] || '') + (parts[1]?.[0] || '')).toUpperCase() || '?'
+})
+
 const lastSeenLabel = computed(() => {
   if (!driver.value?.last_ping_at) return ''
   try {
@@ -141,7 +147,22 @@ const renderMap = () => {
   if (marker) {
     marker.setLatLng(position)
   } else {
-    marker = L.marker(position).addTo(map)
+    const icon = L.divIcon({
+      className: '',
+      html: `
+        <div style="
+          width:36px;height:36px;border-radius:50%;
+          background:#2563eb;
+          border:3px solid white;
+          box-shadow:0 2px 6px rgba(0,0,0,0.4);
+          display:flex; align-items:center; justify-content:center;
+          color:white; font-weight:700; font-size:13px; font-family:inherit;
+        ">${initials.value}</div>
+      `,
+      iconSize: [36, 36],
+      iconAnchor: [18, 18],
+    })
+    marker = L.marker(position, { icon }).addTo(map)
   }
 
   // The container's final size can settle a beat after layout/paint
