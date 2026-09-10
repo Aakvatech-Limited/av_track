@@ -149,13 +149,13 @@
           <div
             v-for="stop in upcomingStops"
             :key="stop.id"
-            class="flex items-center justify-between rounded-xl border p-4 shadow-sm transition active:scale-[0.99]"
+            class="flex items-start justify-between gap-3 rounded-xl border p-4 shadow-sm transition active:scale-[0.99]"
             :class="stop.status === 'Picked Up' ? 'border-amber-200 bg-amber-50/40' : 'border-slate-200 bg-white'"
             @click="openStopSheet(stop)"
           >
-            <div class="flex items-center gap-3">
+            <div class="flex min-w-0 items-start gap-3">
               <div
-                class="flex h-10 w-10 items-center justify-center rounded-full text-sm font-bold"
+                class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full text-sm font-bold"
                 :class="stop.status === 'Picked Up' ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-700'"
               >
                 <svg v-if="stop.status === 'Picked Up'" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
@@ -163,9 +163,9 @@
                 </svg>
                 <span v-else>#{{ stop.id }}</span>
               </div>
-              <div>
-                <p class="font-bold text-slate-900 text-sm">{{ stop.address }}</p>
-                <p class="text-xs text-slate-500 font-medium mt-0.5">
+              <div class="min-w-0">
+                <p class="break-words font-bold text-slate-900 text-sm leading-snug">{{ stop.address }}</p>
+                <p class="text-xs text-slate-500 font-medium mt-1">
                   {{ stop.customer_name }}
                   <span v-if="stop.customer_phone" class="ml-1 text-slate-400">({{ stop.customer_phone }})</span>
                 </p>
@@ -175,7 +175,7 @@
               </div>
             </div>
             <span
-              class="rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider"
+              class="flex-shrink-0 whitespace-nowrap rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider"
               :class="stop.status === 'Picked Up' ? 'bg-amber-100 text-amber-700' : 'bg-blue-50 text-blue-600'"
             >
               {{ stop.status || 'Pending' }}
