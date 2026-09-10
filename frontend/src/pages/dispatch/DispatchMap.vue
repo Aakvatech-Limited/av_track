@@ -235,14 +235,6 @@ const renderDrivers = () => {
     } else {
       const marker = L.marker(position, { icon }).addTo(map)
       marker.bindPopup(popupHtml(driver))
-      marker.on('popupopen', () => {
-        const btn = document.querySelector(`.dispatch-view-driver-btn[data-driver="${driver.driver}"]`)
-        if (btn) {
-          btn.addEventListener('click', () => {
-            router.push(`/dispatch/driver/${encodeURIComponent(driver.driver)}`)
-          })
-        }
-      })
       markers[driver.driver] = marker
     }
   })
@@ -389,6 +381,17 @@ onMounted(async () => {
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
   }).addTo(map)
   map.whenReady(() => map.invalidateSize())
+
+  // Delegated once, on the map container - popup content gets replaced by
+  // setPopupContent() on every freshness tick, which would silently drop a
+  // listener bound directly to the button (it only ever fires on the first
+  // popupopen, not on later content swaps).
+  mapContainer.value.addEventListener('click', (event) => {
+    const btn = event.target.closest('.dispatch-view-driver-btn')
+    if (!btn) return
+    const driverId = btn.getAttribute('data-driver')
+    if (driverId) router.push(`/dispatch/driver/${encodeURIComponent(driverId)}`)
+  })
 
   await loadFleet()
 

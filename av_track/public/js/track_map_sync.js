@@ -321,6 +321,15 @@ av_track.open_assign_driver_dialog = function(frm) {
     let markers = {};
     let driversById = {};
 
+    // Delegated once, on the dialog wrapper - popup content gets replaced by
+    // setPopupContent() whenever a live location/status ping arrives for a
+    // driver whose popup is open, which would silently drop a listener bound
+    // directly to the button (it only ever fires on the first popupopen, not
+    // on later content swaps).
+    $wrapper.on('click', '.map-assign-btn', function() {
+        assign_driver($(this).attr('data-driver'));
+    });
+
     const statusColor = (driver) => {
         if (!driver.is_online) return '#94a3b8'; // offline - grey
         if (driver.assigned_orders > 0) return '#2563eb'; // on delivery - blue
@@ -423,7 +432,7 @@ av_track.open_assign_driver_dialog = function(frm) {
                 <span class="${driver.is_online ? 'assign-driver-pulse-dot' : ''}" style="width:8px; height:8px; border-radius:50%; background:${statusColor(driver)}; flex-shrink:0; margin-left:4px;"></span>
                 <span style="font-size:12px; color:#64748b;">${statusLabel(driver)} &middot; ${driver.assigned_orders || 0} ${__('active jobs')}</span>
             </div>
-            <button type="button" class="map-assign-btn" style="width:100%; background:#2563eb; color:white; border:none; border-radius:10px; padding:10px 12px; font-weight:700; font-size:13px; display:flex; align-items:center; justify-content:center; gap:6px; cursor:pointer;">
+            <button type="button" class="map-assign-btn" data-driver="${frappe.utils.escape_html(driver.driver)}" style="width:100%; background:#2563eb; color:white; border:none; border-radius:10px; padding:10px 12px; font-weight:700; font-size:13px; display:flex; align-items:center; justify-content:center; gap:6px; cursor:pointer;">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3">
                     <path d="M20 6L9 17l-5-5" stroke-linecap="round" stroke-linejoin="round"/>
                 </svg>
@@ -448,11 +457,6 @@ av_track.open_assign_driver_dialog = function(frm) {
 
         let marker = L.marker(pos, { icon: build_driver_icon(driver) }).addTo(map);
         marker.bindPopup(driver_popup_html(driver));
-        marker.on('popupopen', () => {
-            $('.leaflet-popup .map-assign-btn').off('click').on('click', () => {
-                assign_driver(driver.driver);
-            });
-        });
         markers[driver.driver] = marker;
     };
 
