@@ -288,6 +288,212 @@ frappe.ui.form.on('Supplier', {
     }
 });
 
+av_track.open_assign_driver_dialog = function(frm) {
+    let d = new frappe.ui.Dialog({
+        title: __('Assign Driver'),
+        size: 'extra-large',
+        fields: [
+            {
+                fieldname: 'map_html',
+                fieldtype: 'HTML'
+            }
+        ]
+    });
+
+    d.show();
+
+    let map_id = 'assign_driver_map_' + frappe.utils.get_random(6);
+    let $wrapper = d.fields_dict.map_html.$wrapper;
+    $wrapper.html(`
+        <div style="position: relative; height: 65vh; min-height: 420px; width: 100%; border-radius: 8px; overflow: hidden; border: 1px solid var(--border-color);">
+            <div id="${map_id}" style="height: 100%; width: 100%;"></div>
+            <div class="assign-driver-map-loading" style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: var(--fg-color); z-index: 500;">
+                <span class="text-muted">${__('Loading map...')}</span>
+            </div>
+        </div>
+    `);
+
+    const statusColor = (driver) => {
+        if (!driver.is_online) return '#94a3b8'; // offline - grey
+        if (driver.assigned_orders > 0) return '#2563eb'; // on delivery - blue
+        return '#16a34a'; // available - green
+    };
+
+    const statusLabel = (driver) => {
+        if (!driver.is_online) return __('Offline');
+        if (driver.assigned_orders > 0) return __('On Delivery');
+        return __('Available');
+    };
+
+    const getInitials = (name) => {
+        if (!name) return '?';
+        let parts = name.trim().split(/\s+/);
+        let first = parts[0] ? parts[0][0] : '';
+        let second = parts[1] ? parts[1][0] : '';
+        return (first + second).toUpperCase();
+    };
+
+    const assign_driver = (driver) => {
+        frm.set_value('assigned_driver', driver);
+        frappe.show_alert({ message: __('Driver assigned. Remember to save.'), indicator: 'green' });
+        d.hide();
+    };
+
+    const init_map = (drivers) => {
+        let attempts = 0;
+        const MAX_ATTEMPTS = 40; // ~6s of retrying before giving up
+
+        const show_map_error = (message) => {
+            $wrapper.find('.assign-driver-map-loading').html(`
+                <div style="text-align:center;">
+                    <span class="text-danger">${message}</span><br>
+                    <button type="button" class="btn btn-xs btn-default retry-map-btn" style="margin-top:8px;">${__('Retry')}</button>
+                </div>
+            `).show();
+            $wrapper.find('.retry-map-btn').off('click').on('click', () => {
+                $wrapper.find('.assign-driver-map-loading').show().html(`<span class="text-muted">${__('Loading map...')}</span>`);
+                attempts = 0;
+                draw();
+            });
+        };
+
+        const draw = () => {
+            attempts++;
+
+            if (typeof L === 'undefined') {
+                if (attempts > MAX_ATTEMPTS) {
+                    show_map_error(__('Could not load the map library.'));
+                    return;
+                }
+                setTimeout(draw, 150);
+                return;
+            }
+
+            let container = document.getElementById(map_id);
+            if (!container) {
+                if (attempts > MAX_ATTEMPTS) {
+                    show_map_error(__('Could not find the map container.'));
+                    return;
+                }
+                setTimeout(draw, 150);
+                return;
+            }
+
+            try {
+                let center = [-1.286389, 36.817223];
+                let has_dropoff = frm.doc.dropoff_lat && frm.doc.dropoff_lng;
+                if (has_dropoff) {
+                    center = [frm.doc.dropoff_lat, frm.doc.dropoff_lng];
+                }
+
+                let map = L.map(container).setView(center, 12);
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    maxZoom: 19,
+                    attribution: '© OpenStreetMap contributors'
+                }).addTo(map);
+
+                let bounds = [];
+
+                if (has_dropoff) {
+                    let dropoffIcon = L.divIcon({
+                        className: '',
+                        html: `<div style="width:18px;height:18px;border-radius:50%;background:#dc2626;border:2px solid white;box-shadow:0 1px 4px rgba(0,0,0,0.4);"></div>`,
+                        iconSize: [18, 18],
+                        iconAnchor: [9, 9]
+                    });
+                    L.marker(center, { icon: dropoffIcon }).addTo(map).bindPopup(__('Dropoff Location'));
+                    bounds.push(center);
+                }
+
+                drivers.forEach((driver) => {
+                    if (driver.last_lat == null || driver.last_lng == null) return;
+
+                    let pos = [driver.last_lat, driver.last_lng];
+                    let icon = L.divIcon({
+                        className: '',
+                        html: `
+                            <div style="
+                                width:36px;height:36px;border-radius:50%;
+                                background:${statusColor(driver)};
+                                border:3px solid white;
+                                box-shadow:0 2px 6px rgba(0,0,0,0.4);
+                                display:flex; align-items:center; justify-content:center;
+                                color:white; font-weight:700; font-size:13px; font-family:inherit;
+                                cursor:pointer;
+                            ">${getInitials(driver.driver_name || driver.driver)}</div>
+                        `,
+                        iconSize: [36, 36],
+                        iconAnchor: [18, 18],
+                        popupAnchor: [0, -18]
+                    });
+
+                    let marker = L.marker(pos, { icon: icon }).addTo(map);
+                    marker.bindPopup(`
+                        <div style="font-size:12px; min-width:150px;">
+                            <b>${frappe.utils.escape_html(driver.driver_name || driver.driver)}</b><br>
+                            ${statusLabel(driver)} &middot; ${driver.assigned_orders || 0} ${__('active jobs')}
+                            <br>
+                            <button type="button" class="btn btn-xs btn-primary map-assign-btn" style="margin-top:6px; width:100%;">${__('Assign')}</button>
+                        </div>
+                    `);
+                    marker.on('popupopen', () => {
+                        $('.leaflet-popup .map-assign-btn').off('click').on('click', () => {
+                            assign_driver(driver.driver);
+                        });
+                    });
+
+                    bounds.push(pos);
+                });
+
+                if (bounds.length > 1) {
+                    map.fitBounds(bounds, { padding: [40, 120] });
+                }
+
+                map.whenReady(() => {
+                    setTimeout(() => {
+                        map.invalidateSize();
+                        $wrapper.find('.assign-driver-map-loading').fadeOut(150);
+                    }, 150);
+                });
+            } catch (e) {
+                console.error('Assign Driver map error:', e);
+                show_map_error(__('Something went wrong loading the map.'));
+            }
+        };
+
+        // Hard fallback: never let the loading state hang forever, no matter what went wrong.
+        setTimeout(() => {
+            if ($wrapper.find('.assign-driver-map-loading').is(':visible')) {
+                show_map_error(__('The map is taking too long to load.'));
+            }
+        }, 8000);
+
+        if (typeof L !== 'undefined') {
+            setTimeout(draw, 100);
+        } else {
+            frappe.require([
+                'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css',
+                'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js'
+            ], function() {
+                setTimeout(draw, 100);
+            });
+        }
+    };
+
+    frappe.call({
+        method: 'av_track.api.get_fleet_overview',
+        callback: function(r) {
+            let drivers = r.message || [];
+            init_map(drivers);
+        },
+        error: function() {
+            $wrapper.find('.assign-driver-map-loading').html(
+                `<span class="text-danger">${__('Could not load drivers.')}</span>`
+            );
+        }
+    });
+};
+
 frappe.ui.form.on('Track Delivery Job', {
     refresh: function(frm) {
         frm.add_custom_button(__('Dropoff Location Map Picker'), function() {
@@ -296,6 +502,10 @@ frappe.ui.form.on('Track Delivery Job', {
 
         frm.add_custom_button(__('Pickup Location Map Picker'), function() {
             av_track.open_map_picker_dialog(frm, 'pickup_lat', 'pickup_lng', 'pickup_address');
+        }, __('Tracking'));
+
+        frm.add_custom_button(__('Assign Driver'), function() {
+            av_track.open_assign_driver_dialog(frm);
         }, __('Tracking'));
     }
 });
