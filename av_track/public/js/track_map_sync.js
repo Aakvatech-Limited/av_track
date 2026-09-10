@@ -413,11 +413,30 @@ av_track.open_assign_driver_dialog = function(frm) {
                     let dropoffAddress = frm.doc.dropoff_address || __('Address not set');
 
                     let dropoffPopupHtml = `
-                        <div style="font-size:12px; min-width:180px;">
-                            <div style="font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.04em; color:var(--text-muted); margin-bottom:4px;">${__('Dropoff')}</div>
-                            <div style="font-weight:700; margin-bottom:2px;">${frappe.utils.escape_html(customerName)}</div>
-                            ${customerPhone ? `<div style="color:var(--text-muted); margin-bottom:4px;">📞 ${frappe.utils.escape_html(customerPhone)}</div>` : ''}
-                            <div style="color:var(--text-muted);">${frappe.utils.escape_html(dropoffAddress)}</div>
+                        <div style="min-width:220px; padding:2px;">
+                            <div style="font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.04em; color:#94a3b8; margin-bottom:8px;">${__('Dropoff')}</div>
+                            <div style="display:flex; align-items:flex-start; gap:8px; margin-bottom:10px;">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2" style="margin-top:2px; flex-shrink:0;">
+                                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/>
+                                    <circle cx="12" cy="10" r="3"/>
+                                </svg>
+                                <span style="font-weight:700; font-size:13px; color:#0f172a;">${frappe.utils.escape_html(dropoffAddress)}</span>
+                            </div>
+                            <div style="display:flex; align-items:center; gap:8px;${customerPhone ? ' margin-bottom:8px;' : ''}">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2" style="flex-shrink:0;">
+                                    <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/>
+                                    <circle cx="12" cy="7" r="4"/>
+                                </svg>
+                                <span style="font-weight:600; font-size:13px; color:#0f172a;">${frappe.utils.escape_html(customerName)}</span>
+                            </div>
+                            ${customerPhone ? `
+                            <div style="display:flex; align-items:center; gap:8px;">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2" style="flex-shrink:0;">
+                                    <path d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/>
+                                </svg>
+                                <span style="font-size:13px; color:#0f172a;">${frappe.utils.escape_html(customerPhone)}</span>
+                            </div>
+                            ` : ''}
                         </div>
                     `;
 
@@ -449,11 +468,24 @@ av_track.open_assign_driver_dialog = function(frm) {
 
                     let marker = L.marker(pos, { icon: icon }).addTo(map);
                     marker.bindPopup(`
-                        <div style="font-size:12px; min-width:150px;">
-                            <b>${frappe.utils.escape_html(driver.driver_name || driver.driver)}</b><br>
-                            ${statusLabel(driver)} &middot; ${driver.assigned_orders || 0} ${__('active jobs')}
-                            <br>
-                            <button type="button" class="btn btn-xs btn-primary map-assign-btn" style="margin-top:6px; width:100%;">${__('Assign')}</button>
+                        <div style="min-width:220px; padding:2px;">
+                            <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px;">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2" style="flex-shrink:0;">
+                                    <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/>
+                                    <circle cx="12" cy="7" r="4"/>
+                                </svg>
+                                <span style="font-weight:700; font-size:13px; color:#0f172a;">${frappe.utils.escape_html(driver.driver_name || driver.driver)}</span>
+                            </div>
+                            <div style="display:flex; align-items:center; gap:8px; margin-bottom:14px;">
+                                <span style="width:8px; height:8px; border-radius:50%; background:${statusColor(driver)}; flex-shrink:0; margin-left:4px;"></span>
+                                <span style="font-size:12px; color:#64748b;">${statusLabel(driver)} &middot; ${driver.assigned_orders || 0} ${__('active jobs')}</span>
+                            </div>
+                            <button type="button" class="map-assign-btn" style="width:100%; background:#2563eb; color:white; border:none; border-radius:10px; padding:10px 12px; font-weight:700; font-size:13px; display:flex; align-items:center; justify-content:center; gap:6px; cursor:pointer;">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3">
+                                    <path d="M20 6L9 17l-5-5" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                                ${__('Assign Driver')}
+                            </button>
                         </div>
                     `);
                     marker.on('popupopen', () => {
