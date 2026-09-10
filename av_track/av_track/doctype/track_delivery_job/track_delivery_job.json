@@ -69,7 +69,8 @@
    "fieldtype": "Link",
    "in_list_view": 1,
    "label": "Company",
-   "options": "Company"
+   "options": "Company",
+   "read_only_depends_on": "eval:doc.status=='Delivered'"
   },
   {
    "fieldname": "column_1",
@@ -92,12 +93,14 @@
    "fieldtype": "Link",
    "in_list_view": 1,
    "label": "Assigned Driver",
-   "options": "Driver"
+   "options": "Driver",
+   "read_only_depends_on": "eval:doc.status=='Delivered'"
   },
   {
    "fieldname": "shipping_zone",
    "fieldtype": "Data",
-   "label": "Shipping Zone"
+   "label": "Shipping Zone",
+   "read_only_depends_on": "eval:doc.status=='Delivered'"
   },
   {
    "fieldname": "source_section",
@@ -109,7 +112,8 @@
    "fieldtype": "Select",
    "in_list_view": 1,
    "label": "Source DocType",
-   "options": "Sales Order\nPOS Invoice\nDelivery Note\nIBT Request\nPurchase Order\nSales Invoice\nPurchase Invoice\nPurchase Receipt"
+   "options": "Sales Order\nPOS Invoice\nDelivery Note\nIBT Request\nPurchase Order\nSales Invoice\nPurchase Invoice\nPurchase Receipt",
+   "read_only_depends_on": "eval:doc.status=='Delivered'"
   },
   {
    "fieldname": "column_3",
@@ -120,7 +124,8 @@
    "fieldtype": "Dynamic Link",
    "in_list_view": 1,
    "label": "Source Document",
-   "options": "source_doctype"
+   "options": "source_doctype",
+   "read_only_depends_on": "eval:doc.status=='Delivered'"
   },
   {
    "fieldname": "pickup_section",
@@ -198,7 +203,8 @@
   {
    "fieldname": "customer_name",
    "fieldtype": "Data",
-   "label": "Customer Name"
+   "label": "Customer Name",
+   "read_only_depends_on": "eval:doc.status=='Delivered'"
   },
   {
    "fieldname": "column_8",
@@ -207,7 +213,8 @@
   {
    "fieldname": "customer_phone",
    "fieldtype": "Data",
-   "label": "Customer Phone"
+   "label": "Customer Phone",
+   "read_only_depends_on": "eval:doc.status=='Delivered'"
   },
   {
    "fieldname": "timing_section",
@@ -217,7 +224,8 @@
   {
    "fieldname": "scheduled_pickup",
    "fieldtype": "Datetime",
-   "label": "Scheduled Pickup"
+   "label": "Scheduled Pickup",
+   "read_only_depends_on": "eval:doc.status=='Delivered'"
   },
   {
    "fieldname": "column_9",
@@ -226,7 +234,8 @@
   {
    "fieldname": "scheduled_dropoff",
    "fieldtype": "Datetime",
-   "label": "Scheduled Dropoff"
+   "label": "Scheduled Dropoff",
+   "read_only_depends_on": "eval:doc.status=='Delivered'"
   },
   {
    "fieldname": "column_10",
@@ -281,7 +290,8 @@
    "fieldname": "delay_reason",
    "fieldtype": "Select",
    "label": "Delay Reason",
-   "options": "\nTraffic Congestion\nVehicle Breakdown\nStore Delay\nCustomer Not In Place\nWeather Conditions\nOther"
+   "options": "\nTraffic Congestion\nVehicle Breakdown\nStore Delay\nCustomer Not In Place\nWeather Conditions\nOther",
+   "read_only_depends_on": "eval:doc.status=='Delivered'"
   },
   {
    "fieldname": "column_delay_1",
@@ -290,7 +300,8 @@
   {
    "fieldname": "delay_notes",
    "fieldtype": "Small Text",
-   "label": "Delay Notes"
+   "label": "Delay Notes",
+   "read_only_depends_on": "eval:doc.status=='Delivered'"
   },
   {
    "fieldname": "notes_section",
@@ -300,7 +311,8 @@
   {
    "fieldname": "notes",
    "fieldtype": "Small Text",
-   "label": "Notes"
+   "label": "Notes",
+   "read_only_depends_on": "eval:doc.status=='Delivered'"
   },
   {
    "fieldname": "timestamps_section",
