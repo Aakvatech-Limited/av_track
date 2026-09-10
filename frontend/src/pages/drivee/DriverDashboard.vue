@@ -149,12 +149,19 @@
           <div
             v-for="stop in upcomingStops"
             :key="stop.id"
-            class="flex items-center justify-between rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition active:scale-[0.99]"
+            class="flex items-center justify-between rounded-xl border p-4 shadow-sm transition active:scale-[0.99]"
+            :class="stop.status === 'Picked Up' ? 'border-amber-200 bg-amber-50/40' : 'border-slate-200 bg-white'"
             @click="openStopSheet(stop)"
           >
             <div class="flex items-center gap-3">
-              <div class="flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 text-sm font-bold text-slate-700">
-                #{{ stop.id }}
+              <div
+                class="flex h-10 w-10 items-center justify-center rounded-full text-sm font-bold"
+                :class="stop.status === 'Picked Up' ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-700'"
+              >
+                <svg v-if="stop.status === 'Picked Up'" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+                <span v-else>#{{ stop.id }}</span>
               </div>
               <div>
                 <p class="font-bold text-slate-900 text-sm">{{ stop.address }}</p>
@@ -162,9 +169,15 @@
                   {{ stop.customer_name }}
                   <span v-if="stop.customer_phone" class="ml-1 text-slate-400">({{ stop.customer_phone }})</span>
                 </p>
+                <p v-if="stop.status === 'Picked Up'" class="text-[11px] font-bold text-amber-600 mt-1">
+                  Picked up &mdash; tap to continue to delivery
+                </p>
               </div>
             </div>
-            <span class="rounded-full bg-blue-50 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-blue-600">
+            <span
+              class="rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider"
+              :class="stop.status === 'Picked Up' ? 'bg-amber-100 text-amber-700' : 'bg-blue-50 text-blue-600'"
+            >
               {{ stop.status || 'Pending' }}
             </span>
           </div>
