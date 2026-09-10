@@ -152,7 +152,8 @@ const handleLogout = async () => {
   } catch (error) {
     // ignore
   }
-  router.push('/dispatch/login')
+  // The route guard will bounce straight to Frappe's own login page.
+  router.push('/dispatch')
 }
 
 onMounted(async () => {

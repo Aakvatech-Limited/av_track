@@ -41,11 +41,6 @@ const routes = [
     component: () => import('@/pages/CustomerSignup.vue'),
   },
   {
-    path: '/dispatch/login',
-    name: 'DispatchLogin',
-    component: () => import('@/pages/DispatchLogin.vue'),
-  },
-  {
     path: '/dispatch',
     name: 'DispatchMap',
     component: () => import('@/pages/dispatch/DispatchMap.vue'),
@@ -88,17 +83,25 @@ router.beforeEach(async (to) => {
   if (to.meta.requiresDispatchAuth) {
     const { getLoggedUser, getFleetOverview } = await import('./utils/auth')
 
+    let user
     try {
-      const user = await getLoggedUser()
-      if (!user || user === 'Guest') {
-        return { path: '/dispatch/login', query: { reason: 'auth' } }
-      }
+      user = await getLoggedUser()
+    } catch (error) {
+      user = null
+    }
 
+    if (!user || user === 'Guest') {
+      window.location.href = `/login?redirect-to=${encodeURIComponent('/track' + to.fullPath)}`
+      return false
+    }
+
+    try {
       // get_fleet_overview is restricted server-side to System Manager, so a
       // successful call here doubles as the access check.
       await getFleetOverview()
     } catch (error) {
-      return { path: '/dispatch/login', query: { reason: 'not_authorized' } }
+      window.alert("Your account doesn't have dispatch access.")
+      return { path: '/' }
     }
 
     return true
