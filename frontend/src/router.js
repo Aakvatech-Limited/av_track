@@ -81,7 +81,7 @@ router.beforeEach(async (to) => {
   }
 
   if (to.meta.requiresDispatchAuth) {
-    const { getLoggedUser, getFleetOverview } = await import('./utils/auth')
+    const { getLoggedUser } = await import('./utils/auth')
 
     let user
     try {
@@ -95,15 +95,11 @@ router.beforeEach(async (to) => {
       return false
     }
 
-    try {
-      // get_fleet_overview is restricted server-side to System Manager, so a
-      // successful call here doubles as the access check.
-      await getFleetOverview()
-    } catch (error) {
-      window.alert("Your account doesn't have dispatch access.")
-      return { path: '/' }
-    }
-
+    // Authorization itself (System Manager only, enforced server-side) is
+    // checked by the dispatch pages when they load their data - they already
+    // show a proper error dialog with the real failure reason if that call
+    // is rejected, instead of duplicating the check here with a generic
+    // native alert.
     return true
   }
 
