@@ -45,13 +45,33 @@
           <div class="flex items-start justify-between gap-3">
             <div class="min-w-0">
               <p class="text-xs font-bold uppercase tracking-wider text-slate-400">{{ job.name }}</p>
-              <p class="mt-1 break-words text-sm font-bold text-slate-900">{{ job.dropoff_address || 'Dropoff address not set' }}</p>
               <p class="mt-0.5 text-xs text-slate-500">{{ job.customer_name || 'Unknown customer' }}</p>
             </div>
             <span class="flex-shrink-0 whitespace-nowrap rounded-full bg-blue-50 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-blue-600">
               {{ job.status }}
             </span>
           </div>
+
+          <div class="mt-3 space-y-2 border-t border-slate-100 pt-3">
+            <div v-if="job.pickup_address" class="flex items-start gap-2">
+              <svg class="mt-0.5 h-4 w-4 flex-shrink-0 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="3" />
+                <path d="M12 2v3M12 19v3M2 12h3M19 12h3" stroke-linecap="round" />
+              </svg>
+              <p class="text-xs text-slate-600">{{ job.pickup_address }}</p>
+            </div>
+            <div class="flex items-start gap-2">
+              <svg class="mt-0.5 h-4 w-4 flex-shrink-0 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" />
+                <circle cx="12" cy="10" r="3" />
+              </svg>
+              <p class="text-xs font-semibold text-slate-700">{{ job.dropoff_address || 'Dropoff address not set' }}</p>
+            </div>
+          </div>
+
+          <p v-if="job.last_status_at" class="mt-3 text-[10px] text-slate-400">
+            Status updated {{ formatTimestamp(job.last_status_at) }}
+          </p>
         </div>
       </div>
     </div>
@@ -94,6 +114,18 @@ const lastSeenLabel = computed(() => {
   }
 })
 
+const formatTimestamp = (value) => {
+  if (!value) return ''
+  try {
+    return new Date(value.replace(' ', 'T')).toLocaleTimeString([], {
+      hour: '2-digit',
+      minute: '2-digit',
+    })
+  } catch (error) {
+    return value
+  }
+}
+
 let map = null
 let marker = null
 let L = null
@@ -103,6 +135,7 @@ const renderMap = () => {
   if (driver.value.last_lat == null || driver.value.last_lng == null) return
 
   const position = [Number(driver.value.last_lat), Number(driver.value.last_lng)]
+  map.invalidateSize()
   map.setView(position, 15)
 
   if (marker) {
@@ -110,6 +143,13 @@ const renderMap = () => {
   } else {
     marker = L.marker(position).addTo(map)
   }
+
+  // The container's final size can settle a beat after layout/paint
+  // (route transition, PWA chrome), so re-check once more or the tile
+  // grid stays sized to whatever it was at construction time.
+  setTimeout(() => {
+    map?.invalidateSize()
+  }, 150)
 }
 
 onMounted(async () => {
@@ -122,6 +162,7 @@ onMounted(async () => {
     maxZoom: 19,
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
   }).addTo(map)
+  map.whenReady(() => map.invalidateSize())
 
   try {
     const data = await getDriverRouteDetail(route.params.driver)

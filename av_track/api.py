@@ -430,22 +430,29 @@ def get_fleet_overview():
             driver_names[d["name"]] = d["full_name"]
 
     job_counts = {}
-    current_status_by_driver = {}
+    current_job_by_driver = {}
     if driver_ids:
         jobs = frappe.get_all(
             "Track Delivery Job",
             filters={"assigned_driver": ["in", driver_ids], "status": ["in", ACTIVE_JOB_STATUSES]},
-            fields=["assigned_driver", "status"],
+            fields=[
+                "name", "assigned_driver", "status", "customer_name",
+                "pickup_address", "dropoff_address", "modified",
+            ],
+            order_by="modified desc",
         )
         for j in jobs:
             driver_id = j["assigned_driver"]
             job_counts[driver_id] = job_counts.get(driver_id, 0) + 1
-            current_status_by_driver.setdefault(driver_id, j["status"])
+            # Jobs are already ordered by most-recently-updated first, so the
+            # first one seen per driver is the one they're actively working.
+            current_job_by_driver.setdefault(driver_id, j)
 
     result = []
     for a in accounts:
         driver_id = a.get("driver")
         lat, lng = _known_driver_position(a)
+        current_job = current_job_by_driver.get(driver_id)
         result.append({
             "driver": driver_id,
             "driver_name": driver_names.get(driver_id) or driver_id,
@@ -454,8 +461,12 @@ def get_fleet_overview():
             "last_lng": lng,
             "last_ping_at": a.get("last_ping_at"),
             "assigned_orders": job_counts.get(driver_id, 0),
-            "current_status": current_status_by_driver.get(driver_id)
+            "current_status": (current_job or {}).get("status")
             or ("Available" if a.get("is_online") else "Offline"),
+            "current_job": (current_job or {}).get("name"),
+            "current_job_customer": (current_job or {}).get("customer_name"),
+            "current_job_pickup_address": (current_job or {}).get("pickup_address"),
+            "current_job_dropoff_address": (current_job or {}).get("dropoff_address"),
         })
 
     return result
