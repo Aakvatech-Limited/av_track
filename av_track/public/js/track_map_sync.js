@@ -397,11 +397,31 @@ av_track.open_assign_driver_dialog = function(frm) {
                 if (has_dropoff) {
                     let dropoffIcon = L.divIcon({
                         className: '',
-                        html: `<div style="width:18px;height:18px;border-radius:50%;background:#dc2626;border:2px solid white;box-shadow:0 1px 4px rgba(0,0,0,0.4);"></div>`,
-                        iconSize: [18, 18],
-                        iconAnchor: [9, 9]
+                        html: `
+                            <svg width="32" height="42" viewBox="0 0 32 42" xmlns="http://www.w3.org/2000/svg" style="filter: drop-shadow(0 2px 4px rgba(0,0,0,0.4));">
+                                <path d="M16 0C7.163 0 0 7.163 0 16c0 11 16 26 16 26s16-15 16-26C32 7.163 24.837 0 16 0z" fill="#dc2626"/>
+                                <circle cx="16" cy="16" r="7" fill="white"/>
+                            </svg>
+                        `,
+                        iconSize: [32, 42],
+                        iconAnchor: [16, 42],
+                        popupAnchor: [0, -40]
                     });
-                    L.marker(center, { icon: dropoffIcon }).addTo(map).bindPopup(__('Dropoff Location'));
+
+                    let customerName = frm.doc.customer_name || __('Customer not set');
+                    let customerPhone = frm.doc.customer_phone;
+                    let dropoffAddress = frm.doc.dropoff_address || __('Address not set');
+
+                    let dropoffPopupHtml = `
+                        <div style="font-size:12px; min-width:180px;">
+                            <div style="font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.04em; color:var(--text-muted); margin-bottom:4px;">${__('Dropoff')}</div>
+                            <div style="font-weight:700; margin-bottom:2px;">${frappe.utils.escape_html(customerName)}</div>
+                            ${customerPhone ? `<div style="color:var(--text-muted); margin-bottom:4px;">📞 ${frappe.utils.escape_html(customerPhone)}</div>` : ''}
+                            <div style="color:var(--text-muted);">${frappe.utils.escape_html(dropoffAddress)}</div>
+                        </div>
+                    `;
+
+                    L.marker(center, { icon: dropoffIcon }).addTo(map).bindPopup(dropoffPopupHtml);
                     bounds.push(center);
                 }
 
