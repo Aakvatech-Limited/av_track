@@ -274,10 +274,11 @@
           <button
             type="button"
             :disabled="isSettingCurrentTask"
-            class="h-14 rounded-xl bg-blue-600 text-base font-bold text-white shadow-lg shadow-blue-600/20 disabled:cursor-not-allowed disabled:opacity-60"
+            class="h-14 rounded-xl text-base font-bold text-white shadow-lg disabled:cursor-not-allowed disabled:opacity-60"
+            :class="isResumingForDelivery ? 'bg-amber-500 shadow-amber-500/20' : 'bg-blue-600 shadow-blue-600/20'"
             @click="setAsCurrentTask"
           >
-            {{ isSettingCurrentTask ? 'Setting...' : 'Set as Current Task' }}
+            {{ isSettingCurrentTask ? 'Setting...' : currentTaskButtonLabel }}
           </button>
           <div class="flex gap-3">
             <button
@@ -345,6 +346,11 @@ const currentTask = ref(null)
 const showStopSheet = ref(false)
 const selectedStop = ref(null)
 const isSettingCurrentTask = ref(false)
+
+const isResumingForDelivery = computed(() => selectedStop.value?.status === 'Picked Up')
+const currentTaskButtonLabel = computed(() =>
+  isResumingForDelivery.value ? 'Start Delivery' : 'Set as Current Task'
+)
 const dialogVisible = ref(false)
 const dialogTitle = ref('')
 const dialogMessage = ref('')
