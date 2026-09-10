@@ -40,6 +40,23 @@ const routes = [
     name: 'CustomerSignup',
     component: () => import('@/pages/CustomerSignup.vue'),
   },
+  {
+    path: '/dispatch/login',
+    name: 'DispatchLogin',
+    component: () => import('@/pages/DispatchLogin.vue'),
+  },
+  {
+    path: '/dispatch',
+    name: 'DispatchMap',
+    component: () => import('@/pages/dispatch/DispatchMap.vue'),
+    meta: { requiresDispatchAuth: true },
+  },
+  {
+    path: '/dispatch/driver/:driver',
+    name: 'DispatchDriverDetail',
+    component: () => import('@/pages/dispatch/DispatchDriverDetail.vue'),
+    meta: { requiresDispatchAuth: true },
+  },
 ]
 
 let router = createRouter({
@@ -48,22 +65,43 @@ let router = createRouter({
 })
 
 router.beforeEach(async (to) => {
-  if (!to.meta.requiresDriverAuth) return true
+  if (to.meta.requiresDriverAuth) {
+    const { getLoggedUser, getDriverAccount } = await import('./utils/auth')
 
-  const { getLoggedUser, getDriverAccount } = await import('./utils/auth')
+    try {
+      const user = await getLoggedUser()
+      if (!user || user === 'Guest') {
+        return { path: '/driver-login', query: { reason: 'auth' } }
+      }
 
-  try {
-    const user = await getLoggedUser()
-    if (!user || user === 'Guest') {
+      const account = await getDriverAccount(user)
+      if (!account) {
+        return { path: '/driver-login', query: { reason: 'no_driver' } }
+      }
+    } catch (error) {
       return { path: '/driver-login', query: { reason: 'auth' } }
     }
 
-    const account = await getDriverAccount(user)
-    if (!account) {
-      return { path: '/driver-login', query: { reason: 'no_driver' } }
+    return true
+  }
+
+  if (to.meta.requiresDispatchAuth) {
+    const { getLoggedUser, getFleetOverview } = await import('./utils/auth')
+
+    try {
+      const user = await getLoggedUser()
+      if (!user || user === 'Guest') {
+        return { path: '/dispatch/login', query: { reason: 'auth' } }
+      }
+
+      // get_fleet_overview is restricted server-side to System Manager, so a
+      // successful call here doubles as the access check.
+      await getFleetOverview()
+    } catch (error) {
+      return { path: '/dispatch/login', query: { reason: 'not_authorized' } }
     }
-  } catch (error) {
-    return { path: '/driver-login', query: { reason: 'auth' } }
+
+    return true
   }
 
   return true

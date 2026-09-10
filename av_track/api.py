@@ -388,6 +388,122 @@ def _fetch_job_items(source_doctype, source_docname):
         pass
     return items
 
+
+ACTIVE_JOB_STATUSES = [
+    "Assigned",
+    "Accepted",
+    "En Route to Pickup",
+    "Picked Up",
+    "En Route to Delivery",
+    "En Route",
+]
+
+
+def _known_driver_position(account):
+    """(lat, lng) if this driver has ever actually sent a location ping,
+    else (None, None) - last_lat/last_lng default to 0.0 rather than null
+    when never set, which would otherwise plot drivers in the Gulf of Guinea.
+    """
+    if not account.get("last_ping_at"):
+        return None, None
+    return account.get("last_lat"), account.get("last_lng")
+
+
+@frappe.whitelist()
+def get_fleet_overview():
+    """Live location + workload for every active driver, for the dispatch map."""
+    frappe.only_for("System Manager")
+
+    accounts = frappe.get_all(
+        "Track Driver Account",
+        filters={"is_active": 1},
+        fields=["name", "driver", "is_online", "last_lat", "last_lng", "last_ping_at"],
+    )
+
+    driver_ids = [a["driver"] for a in accounts if a.get("driver")]
+
+    driver_names = {}
+    if driver_ids:
+        for d in frappe.get_all(
+            "Driver", filters={"name": ["in", driver_ids]}, fields=["name", "full_name"]
+        ):
+            driver_names[d["name"]] = d["full_name"]
+
+    job_counts = {}
+    current_status_by_driver = {}
+    if driver_ids:
+        jobs = frappe.get_all(
+            "Track Delivery Job",
+            filters={"assigned_driver": ["in", driver_ids], "status": ["in", ACTIVE_JOB_STATUSES]},
+            fields=["assigned_driver", "status"],
+        )
+        for j in jobs:
+            driver_id = j["assigned_driver"]
+            job_counts[driver_id] = job_counts.get(driver_id, 0) + 1
+            current_status_by_driver.setdefault(driver_id, j["status"])
+
+    result = []
+    for a in accounts:
+        driver_id = a.get("driver")
+        lat, lng = _known_driver_position(a)
+        result.append({
+            "driver": driver_id,
+            "driver_name": driver_names.get(driver_id) or driver_id,
+            "is_online": a.get("is_online"),
+            "last_lat": lat,
+            "last_lng": lng,
+            "last_ping_at": a.get("last_ping_at"),
+            "assigned_orders": job_counts.get(driver_id, 0),
+            "current_status": current_status_by_driver.get(driver_id)
+            or ("Available" if a.get("is_online") else "Offline"),
+        })
+
+    return result
+
+
+@frappe.whitelist()
+def get_driver_route_detail(driver):
+    """One driver's live location plus their currently assigned jobs, for dispatch's per-driver view."""
+    frappe.only_for("System Manager")
+
+    if not driver:
+        frappe.throw("Driver is required.")
+
+    driver_doc = frappe.db.get_value("Driver", driver, ["name", "full_name"], as_dict=True)
+    if not driver_doc:
+        frappe.throw("Driver not found.")
+
+    account = frappe.get_all(
+        "Track Driver Account",
+        filters={"driver": driver},
+        fields=["is_online", "last_lat", "last_lng", "last_ping_at"],
+        limit=1,
+    )
+    account = account[0] if account else {}
+
+    jobs = frappe.get_all(
+        "Track Delivery Job",
+        filters={"assigned_driver": driver, "status": ["in", ACTIVE_JOB_STATUSES]},
+        fields=[
+            "name", "status", "customer_name", "pickup_address", "dropoff_address",
+            "pickup_lat", "pickup_lng", "dropoff_lat", "dropoff_lng",
+            "scheduled_dropoff", "last_status_at",
+        ],
+        order_by="modified asc",
+    )
+
+    lat, lng = _known_driver_position(account)
+    return {
+        "driver": driver_doc["name"],
+        "driver_name": driver_doc["full_name"],
+        "is_online": account.get("is_online"),
+        "last_lat": lat,
+        "last_lng": lng,
+        "last_ping_at": account.get("last_ping_at"),
+        "jobs": jobs,
+    }
+
+
 @frappe.whitelist()
 def set_driver_online(is_online):
     user = frappe.session.user

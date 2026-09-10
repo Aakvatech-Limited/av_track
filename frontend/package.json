@@ -13,6 +13,7 @@
     "autoprefixer": "^10.4.19",
     "feather-icons": "^4.29.1",
     "frappe-ui": "0.1.105",
+    "leaflet": "^1.9.4",
     "postcss": "^8.4.5",
     "signature_pad": "^5.0.2",
     "socket.io-client": "^4.8.3",

@@ -191,3 +191,24 @@ export const logDeliveryDelay = async (jobId, reason, notes = '') => {
   })
   return data.message
 }
+
+export const getFleetOverview = async () => {
+  const data = await request('/api/method/av_track.api.get_fleet_overview', {
+    method: 'POST',
+    headers: withCsrf({
+      'Content-Type': 'application/x-www-form-urlencoded',
+    }),
+  })
+  return data.message
+}
+
+export const getDriverRouteDetail = async (driver) => {
+  const data = await request('/api/method/av_track.api.get_driver_route_detail', {
+    method: 'POST',
+    headers: withCsrf({
+      'Content-Type': 'application/x-www-form-urlencoded',
+    }),
+    body: buildFormBody({ driver }),
+  })
+  return data.message
+}
