@@ -1,5 +1,5 @@
 <template>
-  <div class="relative h-[100dvh] w-full bg-slate-100">
+  <div class="flex h-[100dvh] w-full flex-col bg-slate-100">
     <InfoDialog
       v-model="dialogVisible"
       :title="dialogTitle"
@@ -7,24 +7,26 @@
       :variant="dialogVariant"
     />
 
-    <div class="absolute inset-x-0 top-0 z-[500] flex items-center justify-between bg-white/95 px-4 py-3 shadow-sm backdrop-blur">
-      <div>
+    <div class="z-[500] flex flex-shrink-0 items-center justify-between border-b border-slate-200 bg-white px-4 py-3 shadow-sm">
+      <div class="min-w-0">
         <h1 class="text-lg font-bold text-slate-900">Dispatch</h1>
         <p class="text-xs text-slate-500">{{ onlineCount }} online &middot; {{ drivers.length }} total drivers</p>
       </div>
       <button
         type="button"
-        class="rounded-lg bg-slate-100 px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-200"
+        class="flex-shrink-0 rounded-lg bg-slate-100 px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-200"
         @click="handleLogout"
       >
         Log Out
       </button>
     </div>
 
-    <div ref="mapContainer" class="absolute inset-0"></div>
+    <div class="relative flex-1">
+      <div ref="mapContainer" class="absolute inset-0"></div>
 
-    <div v-if="isLoading" class="absolute inset-x-0 top-16 z-[500] mx-auto w-fit rounded-full bg-white px-4 py-2 text-xs font-semibold text-slate-500 shadow">
-      Loading fleet...
+      <div v-if="isLoading" class="absolute inset-x-0 top-3 z-[500] mx-auto w-fit rounded-full bg-white px-4 py-2 text-xs font-semibold text-slate-500 shadow">
+        Loading fleet...
+      </div>
     </div>
   </div>
 </template>
@@ -161,7 +163,8 @@ onMounted(async () => {
   await import('leaflet/dist/leaflet.css')
   L = leaflet.default
 
-  map = L.map(mapContainer.value).setView(DEFAULT_CENTER, 12)
+  map = L.map(mapContainer.value, { zoomControl: false }).setView(DEFAULT_CENTER, 12)
+  L.control.zoom({ position: 'bottomright' }).addTo(map)
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     maxZoom: 19,
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
