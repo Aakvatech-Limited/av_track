@@ -335,6 +335,7 @@ const mapContainer = ref(null)
 const hasMap = ref(false)
 let mapInstance = null
 let mapMarker = null
+let isInitializingMap = false
 let socket = null
 let handleNewJob = null
 let handleStatusUpdate = null
