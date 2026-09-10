@@ -12,7 +12,7 @@
       leave-from-class="opacity-100"
       leave-to-class="opacity-0"
     >
-      <div v-if="notification" class="fixed top-4 right-4 left-4 sm:left-auto z-50 overflow-hidden rounded-lg bg-white shadow-xl ring-1 ring-black ring-opacity-5">
+      <div v-if="notification" class="fixed top-4 right-4 left-4 sm:left-auto sm:w-full sm:max-w-sm z-50 overflow-hidden rounded-lg bg-white shadow-xl ring-1 ring-black ring-opacity-5">
         <div class="p-4">
           <div class="flex items-start">
             <div class="flex-shrink-0">
