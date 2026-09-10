@@ -305,6 +305,10 @@ av_track.open_assign_driver_dialog = function(frm) {
     let map_id = 'assign_driver_map_' + frappe.utils.get_random(6);
     let $wrapper = d.fields_dict.map_html.$wrapper;
     $wrapper.html(`
+        <style>
+            @keyframes assign-driver-pulse-dot { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
+            .assign-driver-pulse-dot { animation: assign-driver-pulse-dot 1.5s ease-in-out infinite; }
+        </style>
         <div style="position: relative; height: 65vh; min-height: 420px; width: 100%; border-radius: 8px; overflow: hidden; border: 1px solid var(--border-color);">
             <div id="${map_id}" style="height: 100%; width: 100%;"></div>
             <div class="assign-driver-map-loading" style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: var(--fg-color); z-index: 500;">
@@ -312,6 +316,10 @@ av_track.open_assign_driver_dialog = function(frm) {
             </div>
         </div>
     `);
+
+    let map = null;
+    let markers = {};
+    let driversById = {};
 
     const statusColor = (driver) => {
         if (!driver.is_online) return '#94a3b8'; // offline - grey
@@ -337,6 +345,115 @@ av_track.open_assign_driver_dialog = function(frm) {
         frm.set_value('assigned_driver', driver);
         frappe.show_alert({ message: __('Driver assigned. Remember to save.'), indicator: 'green' });
         d.hide();
+    };
+
+    // Keep in sync with apps/av_track/frontend/src/utils/mapMotion.js -
+    // Desk JS can't import that Vite-bundled ES module, so this is a
+    // deliberate duplicate of the same tween/bearing helpers.
+    const tweenTokens = new WeakMap();
+    const tween_marker = (marker, from, to, duration_ms) => {
+        duration_ms = duration_ms || 600;
+        if (!marker) return;
+        let token = {};
+        tweenTokens.set(marker, token);
+        let start = performance.now();
+        const step = (now) => {
+            if (tweenTokens.get(marker) !== token) return;
+            let t = Math.min(1, (now - start) / duration_ms);
+            let eased = 1 - Math.pow(1 - t, 3);
+            marker.setLatLng([
+                from[0] + (to[0] - from[0]) * eased,
+                from[1] + (to[1] - from[1]) * eased,
+            ]);
+            if (t < 1) requestAnimationFrame(step);
+        };
+        requestAnimationFrame(step);
+    };
+
+    const bearing_between = (p1, p2) => {
+        const to_rad = (deg) => (deg * Math.PI) / 180;
+        const to_deg = (rad) => (rad * 180) / Math.PI;
+        let d_lng = to_rad(p2[1] - p1[1]);
+        let y = Math.sin(d_lng) * Math.cos(to_rad(p2[0]));
+        let x = Math.cos(to_rad(p1[0])) * Math.sin(to_rad(p2[0])) -
+            Math.sin(to_rad(p1[0])) * Math.cos(to_rad(p2[0])) * Math.cos(d_lng);
+        return (to_deg(Math.atan2(y, x)) + 360) % 360;
+    };
+
+    const build_driver_icon = (driver) => {
+        let color = statusColor(driver);
+        let heading = driver.is_online ? driver.heading : null;
+        let arrow = heading != null
+            ? `<div style="position:absolute; top:-8px; left:50%; transform:translateX(-50%); width:0; height:0; border-left:5px solid transparent; border-right:5px solid transparent; border-bottom:8px solid ${color};"></div>`
+            : '';
+
+        return L.divIcon({
+            className: '',
+            html: `
+                <div style="position:relative; width:36px; height:36px; transform: rotate(${heading || 0}deg);">
+                    ${arrow}
+                    <div style="
+                        width:36px;height:36px;border-radius:50%;
+                        background:${color};
+                        border:3px solid white;
+                        box-shadow:0 2px 6px rgba(0,0,0,0.4);
+                        display:flex; align-items:center; justify-content:center;
+                        color:white; font-weight:700; font-size:13px; font-family:inherit;
+                        cursor:pointer;
+                        transform: rotate(${-(heading || 0)}deg);
+                    ">${getInitials(driver.driver_name || driver.driver)}</div>
+                </div>
+            `,
+            iconSize: [36, 36],
+            iconAnchor: [18, 18],
+            popupAnchor: [0, -18]
+        });
+    };
+
+    const driver_popup_html = (driver) => `
+        <div style="min-width:220px; padding:2px;">
+            <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2" style="flex-shrink:0;">
+                    <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/>
+                    <circle cx="12" cy="7" r="4"/>
+                </svg>
+                <span style="font-weight:700; font-size:13px; color:#0f172a;">${frappe.utils.escape_html(driver.driver_name || driver.driver)}</span>
+            </div>
+            <div style="display:flex; align-items:center; gap:8px; margin-bottom:14px;">
+                <span class="${driver.is_online ? 'assign-driver-pulse-dot' : ''}" style="width:8px; height:8px; border-radius:50%; background:${statusColor(driver)}; flex-shrink:0; margin-left:4px;"></span>
+                <span style="font-size:12px; color:#64748b;">${statusLabel(driver)} &middot; ${driver.assigned_orders || 0} ${__('active jobs')}</span>
+            </div>
+            <button type="button" class="map-assign-btn" style="width:100%; background:#2563eb; color:white; border:none; border-radius:10px; padding:10px 12px; font-weight:700; font-size:13px; display:flex; align-items:center; justify-content:center; gap:6px; cursor:pointer;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3">
+                    <path d="M20 6L9 17l-5-5" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                ${__('Assign Driver')}
+            </button>
+        </div>
+    `;
+
+    const render_driver_marker = (driver) => {
+        if (!map || driver.last_lat == null || driver.last_lng == null) return;
+
+        let pos = [driver.last_lat, driver.last_lng];
+        let existing = markers[driver.driver];
+
+        if (existing) {
+            let current = existing.getLatLng();
+            tween_marker(existing, [current.lat, current.lng], pos);
+            existing.setIcon(build_driver_icon(driver));
+            existing.setPopupContent(driver_popup_html(driver));
+            return;
+        }
+
+        let marker = L.marker(pos, { icon: build_driver_icon(driver) }).addTo(map);
+        marker.bindPopup(driver_popup_html(driver));
+        marker.on('popupopen', () => {
+            $('.leaflet-popup .map-assign-btn').off('click').on('click', () => {
+                assign_driver(driver.driver);
+            });
+        });
+        markers[driver.driver] = marker;
     };
 
     const init_map = (drivers) => {
@@ -386,7 +503,7 @@ av_track.open_assign_driver_dialog = function(frm) {
                     center = [frm.doc.dropoff_lat, frm.doc.dropoff_lng];
                 }
 
-                let map = L.map(container).setView(center, 12);
+                map = L.map(container).setView(center, 12);
                 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                     maxZoom: 19,
                     attribution: '© OpenStreetMap contributors'
@@ -445,56 +562,11 @@ av_track.open_assign_driver_dialog = function(frm) {
                 }
 
                 drivers.forEach((driver) => {
-                    if (driver.last_lat == null || driver.last_lng == null) return;
-
-                    let pos = [driver.last_lat, driver.last_lng];
-                    let icon = L.divIcon({
-                        className: '',
-                        html: `
-                            <div style="
-                                width:36px;height:36px;border-radius:50%;
-                                background:${statusColor(driver)};
-                                border:3px solid white;
-                                box-shadow:0 2px 6px rgba(0,0,0,0.4);
-                                display:flex; align-items:center; justify-content:center;
-                                color:white; font-weight:700; font-size:13px; font-family:inherit;
-                                cursor:pointer;
-                            ">${getInitials(driver.driver_name || driver.driver)}</div>
-                        `,
-                        iconSize: [36, 36],
-                        iconAnchor: [18, 18],
-                        popupAnchor: [0, -18]
-                    });
-
-                    let marker = L.marker(pos, { icon: icon }).addTo(map);
-                    marker.bindPopup(`
-                        <div style="min-width:220px; padding:2px;">
-                            <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px;">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2" style="flex-shrink:0;">
-                                    <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/>
-                                    <circle cx="12" cy="7" r="4"/>
-                                </svg>
-                                <span style="font-weight:700; font-size:13px; color:#0f172a;">${frappe.utils.escape_html(driver.driver_name || driver.driver)}</span>
-                            </div>
-                            <div style="display:flex; align-items:center; gap:8px; margin-bottom:14px;">
-                                <span style="width:8px; height:8px; border-radius:50%; background:${statusColor(driver)}; flex-shrink:0; margin-left:4px;"></span>
-                                <span style="font-size:12px; color:#64748b;">${statusLabel(driver)} &middot; ${driver.assigned_orders || 0} ${__('active jobs')}</span>
-                            </div>
-                            <button type="button" class="map-assign-btn" style="width:100%; background:#2563eb; color:white; border:none; border-radius:10px; padding:10px 12px; font-weight:700; font-size:13px; display:flex; align-items:center; justify-content:center; gap:6px; cursor:pointer;">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3">
-                                    <path d="M20 6L9 17l-5-5" stroke-linecap="round" stroke-linejoin="round"/>
-                                </svg>
-                                ${__('Assign Driver')}
-                            </button>
-                        </div>
-                    `);
-                    marker.on('popupopen', () => {
-                        $('.leaflet-popup .map-assign-btn').off('click').on('click', () => {
-                            assign_driver(driver.driver);
-                        });
-                    });
-
-                    bounds.push(pos);
+                    driversById[driver.driver] = driver;
+                    render_driver_marker(driver);
+                    if (driver.last_lat != null && driver.last_lng != null) {
+                        bounds.push([driver.last_lat, driver.last_lng]);
+                    }
                 });
 
                 if (bounds.length > 1) {
@@ -507,6 +579,32 @@ av_track.open_assign_driver_dialog = function(frm) {
                         $wrapper.find('.assign-driver-map-loading').fadeOut(150);
                     }, 150);
                 });
+
+                // Live updates while the dialog stays open - the only place in
+                // this app that listens to Frappe's realtime socket directly.
+                const on_location_update = (data) => {
+                    if (!data || !data.driver) return;
+                    let driver = driversById[data.driver] || { driver: data.driver };
+                    let had_position = driver.last_lat != null && driver.last_lng != null;
+                    let prev = had_position ? [driver.last_lat, driver.last_lng] : [data.lat, data.lng];
+                    driver.driver_name = data.driver_name || driver.driver_name;
+                    driver.last_lat = data.lat;
+                    driver.last_lng = data.lng;
+                    driver.heading = bearing_between(prev, [data.lat, data.lng]);
+                    driversById[data.driver] = driver;
+                    render_driver_marker(driver);
+                };
+                const on_status_update = (data) => {
+                    if (!data || !data.driver || !driversById[data.driver]) return;
+                    driversById[data.driver].is_online = data.is_online;
+                    render_driver_marker(driversById[data.driver]);
+                };
+                frappe.realtime.on('driver_location_updated', on_location_update);
+                frappe.realtime.on('driver_status_updated', on_status_update);
+                d.on_hide = function() {
+                    frappe.realtime.off('driver_location_updated', on_location_update);
+                    frappe.realtime.off('driver_status_updated', on_status_update);
+                };
             } catch (e) {
                 console.error('Assign Driver map error:', e);
                 show_map_error(__('Something went wrong loading the map.'));

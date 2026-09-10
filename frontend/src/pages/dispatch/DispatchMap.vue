@@ -43,6 +43,8 @@
 import { onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { getFleetOverview, logout } from '@/utils/auth'
+import { createTrackingSocket } from '@/utils/socket'
+import { tweenMarker, bearingBetween } from '@/utils/mapMotion'
 import InfoDialog from '@/components/InfoDialog.vue'
 
 const router = useRouter()
@@ -50,6 +52,7 @@ const mapContainer = ref(null)
 const isLoading = ref(true)
 const drivers = ref([])
 const onlineCount = ref(0)
+const nowTick = ref(Date.now())
 
 const dialogVisible = ref(false)
 const dialogTitle = ref('')
@@ -64,21 +67,51 @@ const showDialog = (title, message, variant = 'info') => {
 }
 
 const DEFAULT_CENTER = [-6.7924, 39.2083] // Dar es Salaam fallback
-const REFRESH_INTERVAL_MS = 20000
+const REFRESH_INTERVAL_MS = 60000 // safety net only - live pushes do the real work now
+const STALE_MS = 90000
+const TRAIL_LENGTH = 8
 
 let map = null
 let markers = {}
+let trails = {}
+let trailLayers = {}
 let refreshTimer = null
+let tickTimer = null
+let socket = null
 let L = null
+
+const pingTimeMs = (driver) => {
+  if (!driver.last_ping_at) return null
+  return new Date(String(driver.last_ping_at).replace(' ', 'T')).getTime()
+}
+
+const isStale = (driver) => {
+  const pingTime = pingTimeMs(driver)
+  if (pingTime == null) return false
+  return nowTick.value - pingTime > STALE_MS
+}
+
+const relativeTimeLabel = (driver) => {
+  const pingTime = pingTimeMs(driver)
+  if (pingTime == null) return 'no pings yet'
+  const diffSec = Math.max(0, Math.round((nowTick.value - pingTime) / 1000))
+  if (diffSec < 5) return 'just now'
+  if (diffSec < 60) return `${diffSec}s ago`
+  const diffMin = Math.round(diffSec / 60)
+  if (diffMin < 60) return `${diffMin}m ago`
+  return `${Math.round(diffMin / 60)}h ago`
+}
 
 const colorForDriver = (driver) => {
   if (!driver.is_online) return '#94a3b8' // slate - offline
+  if (isStale(driver)) return '#cbd5e1' // pale slate - online but gone quiet
   if (driver.assigned_orders > 0) return '#2563eb' // blue - on delivery
   return '#16a34a' // green - online, available
 }
 
 const statusLabelForDriver = (driver) => {
   if (!driver.is_online) return 'Offline'
+  if (isStale(driver)) return 'Stale'
   if (driver.assigned_orders > 0) return 'On Delivery'
   return 'Available'
 }
@@ -95,18 +128,28 @@ const escapeHtml = (value) =>
   }[ch]))
 
 const buildIcon = (driver) => {
+  const color = colorForDriver(driver)
+  const heading = driver.is_online ? driver.heading : null
+  const arrow = heading != null
+    ? `<div style="position:absolute; top:-8px; left:50%; transform:translateX(-50%); width:0; height:0; border-left:5px solid transparent; border-right:5px solid transparent; border-bottom:8px solid ${color};"></div>`
+    : ''
+
   return L.divIcon({
     className: '',
     html: `
-      <div style="
-        width:36px;height:36px;border-radius:50%;
-        background:${colorForDriver(driver)};
-        border:3px solid white;
-        box-shadow:0 2px 6px rgba(0,0,0,0.4);
-        display:flex; align-items:center; justify-content:center;
-        color:white; font-weight:700; font-size:13px; font-family:inherit;
-        cursor:pointer;
-      ">${escapeHtml(initialsForDriver(driver))}</div>
+      <div style="position:relative; width:36px; height:36px; transform: rotate(${heading || 0}deg);">
+        ${arrow}
+        <div style="
+          width:36px;height:36px;border-radius:50%;
+          background:${color};
+          border:3px solid white;
+          box-shadow:0 2px 6px rgba(0,0,0,0.4);
+          display:flex; align-items:center; justify-content:center;
+          color:white; font-weight:700; font-size:13px; font-family:inherit;
+          cursor:pointer;
+          transform: rotate(${-(heading || 0)}deg);
+        ">${escapeHtml(initialsForDriver(driver))}</div>
+      </div>
     `,
     iconSize: [36, 36],
     iconAnchor: [18, 18],
@@ -156,9 +199,13 @@ const popupHtml = (driver) => {
         <span style="font-weight:700; font-size:13px; color:#0f172a;">${name}</span>
       </div>
       <div style="display:flex; align-items:center; gap:8px; margin-top:8px;">
-        <span style="width:8px; height:8px; border-radius:50%; background:${color}; flex-shrink:0; margin-left:4px;"></span>
+        <span
+          class="${driver.is_online && !isStale(driver) ? 'dispatch-pulse-dot' : ''}"
+          style="width:8px; height:8px; border-radius:50%; background:${color}; flex-shrink:0; margin-left:4px;"
+        ></span>
         <span style="font-size:12px; color:#64748b;">${escapeHtml(status)} &middot; ${driver.assigned_orders || 0} active job${driver.assigned_orders === 1 ? '' : 's'}</span>
       </div>
+      <div style="font-size:11px; color:#94a3b8; margin-top:2px; margin-left:16px;">${escapeHtml(relativeTimeLabel(driver))}</div>
       ${jobBlock}
       <button
         data-driver="${escapeHtml(driver.driver)}"
@@ -207,6 +254,104 @@ const renderDrivers = () => {
       delete markers[driverId]
     }
   })
+}
+
+const redrawTrail = (driverId, trail) => {
+  if (!map || !L) return
+  if (trailLayers[driverId]) {
+    trailLayers[driverId].forEach((line) => line.remove())
+  }
+  const lines = []
+  for (let i = 1; i < trail.length; i++) {
+    const opacity = 0.15 + (i / trail.length) * 0.35 // fades in toward the newest segment
+    lines.push(
+      L.polyline([trail[i - 1], trail[i]], { color: '#2563eb', weight: 3, opacity }).addTo(map)
+    )
+  }
+  trailLayers[driverId] = lines
+}
+
+const patchDriverLocation = (data) => {
+  if (!data || !data.driver) return
+  const driver = drivers.value.find((d) => d.driver === data.driver)
+  if (!driver) {
+    loadFleet()
+    return
+  }
+
+  const hadPosition = driver.last_lat != null && driver.last_lng != null
+  const toPos = [Number(data.lat), Number(data.lng)]
+  const fromPos = hadPosition ? [Number(driver.last_lat), Number(driver.last_lng)] : toPos
+
+  driver.last_lat = data.lat
+  driver.last_lng = data.lng
+  driver.last_ping_at = data.ping_at
+
+  const trail = trails[data.driver] || (trails[data.driver] = [])
+  trail.push(toPos)
+  if (trail.length > TRAIL_LENGTH) trail.shift()
+  if (trail.length >= 2) {
+    driver.heading = bearingBetween(trail[trail.length - 2], trail[trail.length - 1])
+  }
+  redrawTrail(data.driver, trail)
+
+  const marker = markers[data.driver]
+  if (marker) {
+    tweenMarker(marker, fromPos, toPos)
+    marker.setIcon(buildIcon(driver))
+    marker.setPopupContent(popupHtml(driver))
+  } else {
+    renderDrivers()
+  }
+}
+
+const patchDriverStatus = (data) => {
+  if (!data || !data.driver) return
+  const driver = drivers.value.find((d) => d.driver === data.driver)
+  if (!driver) return
+  driver.is_online = data.is_online
+  onlineCount.value = drivers.value.filter((d) => d.is_online).length
+  renderDrivers()
+}
+
+const handleNewDeliveryJob = (data) => {
+  if (!data || !data.driver) return
+  const driver = drivers.value.find((d) => d.driver === data.driver)
+  if (!driver) {
+    loadFleet()
+    return
+  }
+  if (!driver.current_job) {
+    driver.assigned_orders = (driver.assigned_orders || 0) + 1
+    driver.current_job = data.job
+    driver.current_job_customer = data.customer_name
+    driver.current_job_pickup_address = data.pickup_address
+    driver.current_job_dropoff_address = data.dropoff_address
+    driver.current_status = 'Assigned'
+    renderDrivers()
+  } else {
+    loadFleet()
+  }
+}
+
+const handleJobUnassigned = (data) => {
+  if (!data || !data.driver) return
+  const driver = drivers.value.find((d) => d.driver === data.driver)
+  if (driver && driver.current_job === data.job) {
+    loadFleet()
+  }
+}
+
+const handleJobStatusUpdated = (data) => {
+  if (!data || !data.assigned_driver) return
+  const driver = drivers.value.find((d) => d.driver === data.assigned_driver)
+  if (!driver || driver.current_job !== data.job) return
+  if (data.status === 'Delivered') {
+    loadFleet()
+  } else {
+    driver.current_status = data.status
+    renderDrivers()
+  }
 }
 
 const loadFleet = async () => {
@@ -259,6 +404,17 @@ onMounted(async () => {
   }
 
   refreshTimer = window.setInterval(loadFleet, REFRESH_INTERVAL_MS)
+  tickTimer = window.setInterval(() => {
+    nowTick.value = Date.now()
+    renderDrivers() // re-derive staleness styling + tick any open popup's "updated Xs ago"
+  }, 1000)
+
+  socket = createTrackingSocket()
+  socket.on('driver_location_updated', patchDriverLocation)
+  socket.on('driver_status_updated', patchDriverStatus)
+  socket.on('new_delivery_job', handleNewDeliveryJob)
+  socket.on('delivery_job_unassigned', handleJobUnassigned)
+  socket.on('delivery_job_status_updated', handleJobStatusUpdated)
 })
 
 onBeforeUnmount(() => {
@@ -266,10 +422,31 @@ onBeforeUnmount(() => {
     window.clearInterval(refreshTimer)
     refreshTimer = null
   }
+  if (tickTimer) {
+    window.clearInterval(tickTimer)
+    tickTimer = null
+  }
+  if (socket) {
+    socket.disconnect()
+    socket = null
+  }
   if (map) {
     map.remove()
     map = null
   }
   markers = {}
+  trails = {}
+  trailLayers = {}
 })
 </script>
+
+<style>
+/* Unscoped: popup content is raw HTML injected by Leaflet outside Vue's render tree. */
+@keyframes dispatch-pulse-dot {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+.dispatch-pulse-dot {
+  animation: dispatch-pulse-dot 1.5s ease-in-out infinite;
+}
+</style>

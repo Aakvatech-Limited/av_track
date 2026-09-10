@@ -524,7 +524,7 @@ def set_driver_online(is_online):
     account = frappe.get_all(
         "Track Driver Account",
         filters={"user": user},
-        fields=["name"],
+        fields=["name", "driver"],
         limit=1,
         ignore_permissions=True,
     )
@@ -539,6 +539,17 @@ def set_driver_online(is_online):
         "is_online",
         online_value,
     )
+
+    frappe.publish_realtime(
+        event="driver_status_updated",
+        message={
+            "driver": account[0]["driver"],
+            "driver_name": frappe.db.get_value("Driver", account[0]["driver"], "full_name"),
+            "is_online": bool(online_value),
+        },
+        after_commit=True,
+    )
+
     return {"is_online": bool(online_value)}
 
 
@@ -753,6 +764,20 @@ def post_location_ping(lat, lng, accuracy=None, job_id=None, device_id=None):
             "last_lng": lng,
             "last_ping_at": ping_time,
         },
+    )
+
+    frappe.publish_realtime(
+        event="driver_location_updated",
+        message={
+            "driver": account["driver"],
+            "driver_name": frappe.db.get_value("Driver", account["driver"], "full_name"),
+            "lat": lat,
+            "lng": lng,
+            "accuracy": accuracy,
+            "ping_at": str(ping_time),
+            "job_id": job_id,
+        },
+        after_commit=True,
     )
 
     return {"name": ping.name}

@@ -88,6 +88,7 @@ class TrackDeliveryJob(Document):
                 {
                     "title": "Delivery Reassigned to You" if reassigned else "New Delivery Assigned",
                     "job": self.name,
+                    "driver": driver,
                     "customer_name": self.customer_name or "",
                     "pickup_address": self.pickup_address or "",
                     "dropoff_address": self.dropoff_address or "",
@@ -105,6 +106,7 @@ class TrackDeliveryJob(Document):
                 {
                     "title": "Delivery Reassigned" if reassigned else "Delivery Unassigned",
                     "job": self.name,
+                    "driver": driver,
                     "customer_name": self.customer_name or "",
                 }
             )
